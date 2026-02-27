@@ -1,0 +1,145 @@
+<div class="modal fade" id="vincularProveedorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white py-2">
+                <h6 class="modal-title"><i class="bi bi-search me-2"></i>Vincular Proveedor</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formVincular" action="{{ url_for('colegios.vincular_proveedor', colegio_id=colegio.id) }}" method="POST">
+                <div class="modal-body p-4">
+                    {% if todos_los_proveedores %}
+                        <div class="input-group mb-3">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" id="busquedaProveedor" class="form-control border-start-0 ps-0 shadow-none" placeholder="Buscar por nombre o NIT...">
+                        </div>
+
+                        <label class="form-label fw-bold small text-muted text-uppercase">Seleccionar Proveedor</label>
+                        <select class="form-select shadow-sm" name="proveedor_id" id="selectProveedor" size="5" required>
+                            {% for p in todos_los_proveedores %}
+                                <option value="{{ p.id }}" class="opcion-proveedor">
+                                    {{ p.primer_nombre }} {{ p.primer_apellido }} | NIT: {{ p.documento }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text mt-2 small">
+                            Mostrando los registros más recientes primero.
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-0">
+                            <i class="bi bi-exclamation-triangle-fill me-2 fs-4"></i>
+                            <div>No hay proveedores disponibles para vincular.</div>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    {% if todos_los_proveedores %}
+                        <button type="submit" class="btn btn-success btn-sm px-3 shadow-sm">Confirmar</button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+<!--Modal para detalle de proveedores -->
+<div class="modal fade" id="verProveedorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0"> <div class="modal-header bg-info text-white py-2 shadow-sm"> 
+                <h6 class="modal-title"><i class="fas fa-eye me-2"></i>Detalles del Proveedor</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body p-4">
+                <div class="row g-3">
+                    
+                    <div class="col-12 mb-2">
+                        <p class="text-info fw-bold small text-uppercase mb-0">Información Legal</p>
+                        <hr class="mt-1 mb-2 opacity-25">
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label class="text-muted d-block small">Tipo</label>
+                        <span id="view_tipo_tercero" class="text-dark fw-medium">-</span>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="text-muted d-block small">Documento / NIT</label>
+                        <span id="view_documento_full" class="text-dark fw-medium">-</span>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted d-block small">Razón Social</label>
+                        <span id="view_razon_social" class="text-primary fw-bold">-</span>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="text-muted d-block small">1er Nombre</label>
+                        <span id="view_p_nombre" class="text-dark">-</span>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="text-muted d-block small">2do Nombre</label>
+                        <span id="view_s_nombre" class="text-dark">-</span>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="text-muted d-block small">1er Apellido</label>
+                        <span id="view_p_apellido" class="text-dark">-</span>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="text-muted d-block small">2do Apellido</label>
+                        <span id="view_s_apellido" class="text-dark">-</span>
+                    </div>
+
+                    <div class="col-12 mt-4 mb-2">
+                        <p class="text-info fw-bold small text-uppercase mb-0">Ubicación y Contacto</p>
+                        <hr class="mt-1 mb-2 opacity-25">
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="text-muted d-block small">Dirección</label>
+                        <span id="view_direccion" class="text-dark">-</span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="text-muted d-block small">Ciudad / Depto</label>
+                        <span id="view_ubicacion_full" class="text-dark">-</span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="text-muted d-block small">Teléfono Móvil</label>
+                        <span id="view_movil" class="text-dark">-</span>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted d-block small">Correo Electrónico</label>
+                        <span id="view_correo" class="text-primary">-</span>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted d-block small">Información Renta</label>
+                        <span id="view_renta" class="text-dark">-</span>
+                    </div>
+
+                    <div class="col-12 mt-4">
+                        <div class="card border-0 bg-light">
+                            <div class="card-body py-2 px-3 shadow-sm rounded">
+                                <div class="row align-items-center text-center">
+                                    <div class="col-md-6 border-end">
+                                        <label class="text-muted small fw-bold d-block text-uppercase">Banco</label>
+                                        <span id="view_banco" class="text-dark fw-bold">-</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="text-muted small fw-bold d-block text-uppercase">N° de Cuenta</label>
+                                        <span id="view_cuenta" class="text-dark fw-bold">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer border-0 bg-light py-2">
+                <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>

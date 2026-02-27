@@ -1,0 +1,138 @@
+
+/* Ajuste para el Navbar */
+
+/* Ajuste para el Navbar */
+.navbar-perfil {
+    background: linear-gradient(90deg, #0d6efd 0%, #0a58ca 100%);
+}
+
+.navbar-brand {
+    letter-spacing: 0.5px;
+}
+
+/* ===== Barra superior ===== */
+.custom-navbar {
+  background-color: #4da6ff; /* Azul claro */
+}
+
+/* ===== Input de búsqueda ===== */
+.search-input {
+  border-radius: 20px;
+}
+
+/* ===== Botón de búsqueda con lupa ===== */
+.search-btn {
+  background-color: #3399ff; /* Azul más fuerte */
+  color: white;
+  border-radius: 50%; /* Botón circular */
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-btn:hover {
+  background-color: #1a75d1; /* Azul más oscuro al pasar el mouse */
+}
+
+/* ===== Botón Crear Colegio ===== */
+.btn-success {
+  
+  border: none;
+}
+
+.btn-success:hover {
+  background-color: #45a049;
+}
+
+/* ===== Botón Filtrar ===== */
+.btn-info {
+  background-color: #3399ff; /* Azul claro */
+  border: none;
+  color: white;
+}
+
+.btn-info:hover {
+  background-color: #1a75d1;
+}
+
+/* Opción 2: sombra sutil */
+.custom-navbar {
+  background-color: var(--bs-body-bg, #ffffff);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04); /* sombra suave hacia abajo */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.02); /* opcional, para suavizar el borde */
+}
+
+
+/* Cuadro de carga más compacto */
+.upload-box {
+  border: 2px dashed #6c757d;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+  /* Bajamos la altura de 180px a 100px */
+  min-height: 100px; 
+  padding: 15px;
+  display: flex;
+  align-items: center;      
+  justify-content: center;  
+  flex-direction: column;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.3s ease; /* Para que el cambio de color sea suave */
+}
+
+/* Efecto hover */
+.upload-box:hover {
+  background-color: #e9ecef;
+  border-color: #0d6efd; /* Cambia a azul al pasar el mouse */
+}
+
+/* Texto inicial más pequeño */
+.upload-box span {
+  color: #0d6efd !important;   
+  font-weight: 600;
+  /* Bajamos de 1.2rem a 0.95rem */
+  font-size: 0.95rem; 
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;                 
+  justify-content: center;
+}
+
+/* Si tienes un icono dentro, podemos achicarlo un poco también */
+.upload-box i {
+  font-size: 1.5rem; 
+  margin-bottom: 5px;
+}
+
+/* Imagen de vista previa */
+.upload-box img {
+  max-height: 120px;
+  object-fit: contain;
+}
+
+/* Efecto de elevación para las tarjetas */
+.card-hover {
+    /* El tiempo que tarda en subir y bajar (suavidad) */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+}
+
+/* Lo que pasa cuando el mouse está encima (hover) */
+.card-hover:hover {
+    /* El "salto": -10px hace que suba. 0px es el nivel del suelo */
+    transform: translateY(-10px); 
+    
+    /* Agregamos una sombra más profunda para que parezca que realmente se alzó */
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15) !important;
+    
+    /* Opcional: un borde sutil para que resalte más */
+    border: 1px solid rgba(13, 110, 253, 0.2) !important;
+}
+
+/* Para que los enlaces dentro de la tarjeta no se vean azules o subrayados */
+.stretched-link {
+    color: inherit;
+    text-decoration: none;
+}

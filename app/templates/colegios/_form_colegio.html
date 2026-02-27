@@ -1,0 +1,94 @@
+<div class="modal fade" id="crearColegioModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">Nuevo Colegio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body">
+                <form id="formCrearColegio" action="{{ url_for('colegios.crear_colegio') }}" method="POST" enctype="multipart/form-data">
+                    
+                    <div class="row mb-2">
+                        <div class="col-md-6">
+                            <label for="nombre" class="form-label small mb-1">Nombre</label>
+                            <input type="text" class="form-control form-control-sm" id="nombre" name="nombre" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="nit" class="form-label small mb-1">NIT</label>
+                            <input type="text" class="form-control form-control-sm" id="nit" name="nit">
+                        </div>
+                    </div>
+
+                    <div class="row mb-2">
+                        <div class="col-md-6">
+                            <label for="direccion" class="form-label small mb-1">Dirección</label>
+                            <input type="text" class="form-control form-control-sm" id="direccion" name="direccion">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="telefono" class="form-label small mb-1">Teléfono</label>
+                            <input type="text" class="form-control form-control-sm" id="telefono" name="telefono">
+                        </div>
+                    </div>
+
+                    <div class="row mb-2">
+                        <div class="col-md-6">
+                            <label for="municipio" class="form-label small mb-1">Municipio</label>
+                            <input type="text" class="form-control form-control-sm" id="municipio" name="municipio">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="rector_nombre" class="form-label small mb-1">Nombre del Rector</label>
+                            <input type="text" class="form-control form-control-sm" id="rector_nombre" name="rector_nombre">
+                        </div>
+                    </div>
+
+                    <div class="row mb-2">
+                        <div class="col-md-6">
+                            <label for="rector_documento" class="form-label small mb-1">Documento del Rector</label>
+                            <input type="text" class="form-control form-control-sm" id="rector_documento" name="rector_documento">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="rector_tipo_documento" class="form-label small mb-1">Tipo de Documento</label>
+                            <select class="form-select form-select-sm" id="rector_tipo_documento" name="rector_tipo_documento" required>
+                                <option value="CC">Cédula de Ciudadanía (CC)</option>
+                                <option value="CE">Cédula de Extranjería (CE)</option>
+                                <option value="TI">Tarjeta de Identidad (TI)</option>
+                                <option value="PAS">Pasaporte (PAS)</option>
+                                <option value="OTRO">Otro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Logotipo del colegio</label>
+                            <div class="upload-box d-flex flex-column justify-content-center align-items-center text-primary fw-bold fs-5" 
+                                 style="cursor: pointer; border: 2px dashed #ccc; min-height: 150px;"
+                                 onclick="document.getElementById('logo_path').click()">
+                                <span id="logoText">Agregar logo</span>
+                                <img id="previewLogo" src="#" alt="Vista previa" class="img-fluid d-none mt-2" style="max-height: 100px;">
+                            </div>
+                            <input type="file" id="logo_path" name="logo_path" accept="image/*" class="d-none">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Firma del rector</label>
+                            <div class="upload-box d-flex flex-column justify-content-center align-items-center text-success fw-bold fs-5" 
+                                 style="cursor: pointer; border: 2px dashed #ccc; min-height: 150px;"
+                                 onclick="document.getElementById('firma_path').click()">
+                                <span id="firmaText">Agregar firma</span>
+                                <img id="previewFirma" src="#" alt="Vista previa" class="img-fluid d-none mt-2" style="max-height: 100px;">
+                            </div>
+                            <input type="file" id="firma_path" name="firma_path" accept="image/*" class="d-none">
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" form="formCrearColegio" class="btn btn-primary">Guardar</button>
+            </div>
+
+        </div> </div> </div>
