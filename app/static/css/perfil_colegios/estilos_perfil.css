@@ -1,0 +1,80 @@
+/* Estilos específicos para el Perfil del Colegio */
+
+.logo-perfil {
+    max-width: 180px;
+    height: auto;
+    object-fit: contain;
+    border: 4px solid #fff;
+    transition: transform 0.3s ease;
+}
+
+.logo-perfil:hover {
+    transform: scale(1.05);
+}
+
+.header-perfil {
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+}
+
+/* Estilo para las etiquetas de los datos */
+.data-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #6c757d;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.data-value {
+    font-weight: 600;
+    color: #212529;
+}
+
+/* Personalización de tarjetas */
+.card {
+    border-radius: 12px;
+    transition: box-shadow 0.3s ease;
+}
+
+.card-header {
+    border-top-left-radius: 12px !important;
+    border-top-right-radius: 12px !important;
+    font-weight: bold;
+}
+
+/* Efecto sutil al pasar sobre los items de proveedores */
+.list-group-item:hover {
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+
+/* Ajuste para el Navbar */
+.navbar-perfil {
+    background: linear-gradient(90deg, #0d6efd 0%, #0a58ca 100%);
+}
+
+/* Estilo para el select tipo lista del modal */
+#selectProveedor {
+    border-radius: 8px;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+#selectProveedor option {
+    padding: 8px;
+    border-radius: 4px;
+    margin-bottom: 2px;
+    cursor: pointer;
+}
+
+#selectProveedor option:hover {
+    background-color: #f8f9fa;
+}
+
+/* Ocultar elementos filtrados con suavidad */
+.opcion-oculta {
+    display: none !important;
+}
