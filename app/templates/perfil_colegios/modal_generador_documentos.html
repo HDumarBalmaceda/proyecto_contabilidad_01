@@ -87,6 +87,13 @@
 </div>
 
         <div class="col-md-6">
+    <label class="form-label fw-bold small">Nombre del Rubro Presupuestal</label>
+    <select class="form-select form-select-sm" id="rubro_nombre" name="rubro_nombre">
+        <option value="">-- Seleccione un rubro --</option>
+        </select>
+</div>
+
+        <div class="col-md-6">
             <label class="form-label fw-bold small">Tipo de Contrato</label>
             <select class="form-select form-select-sm" name="tipo_contrato">
                 <option value="SUMINISTROS">Suministros</option>
@@ -94,12 +101,6 @@
                 <option value="HONORARIOS">Honorarios</option>
             </select>
         </div>
-
-        <div class="col-md-6">
-         <label>Nombre del Rubro Presupuestal</label>
-         <input type="text" name="rubro_nombre" class="form-control" placeholder="Ej: Servicios de papelería">
-       </div>
-
 
         <div class="col-md-6">
             <div class="p-3 bg-light rounded border h-100">
@@ -112,9 +113,9 @@
                         <input type="text" name="cdp_numero" class="form-control form-control-sm" placeholder="Ej: 001">
                     </div>
                     <div class="col-6">
-                        <label class="small fw-bold">Código Presupuestal</label>
-                        <input type="text" name="cod_presupuestal" class="form-control form-control-sm" placeholder="Rubro">
-                    </div>
+    <label class="small fw-bold">Código Presupuestal</label>
+    <input type="text" id="cod_presupuestal" name="cod_presupuestal" class="form-control form-control-sm" readonly placeholder="Código automático">
+</div>
                 </div>
             </div>
         </div>

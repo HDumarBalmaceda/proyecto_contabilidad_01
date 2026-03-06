@@ -304,3 +304,5 @@ document.querySelector('[name="plazo_txt"]').addEventListener('input', actualiza
         document.getElementById('gran_total_display').value = new Intl.NumberFormat('es-CO').format(total);
     };
 });
+
+

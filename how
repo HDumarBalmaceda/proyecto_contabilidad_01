@@ -1,0 +1,98 @@
+[33mcommit 0a2c875096ff0d59dcb3a14259024c70d54f2802[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmejora-de-descargas[m[33m)[m
+Author: Hameth Dumar <hdumarb@gmail.com>
+Date:   Thu Mar 5 10:27:12 2026 -0500
+
+    Configurando bloqueo de hilos para descargas PDF
+
+ ZAPAYAN DATOS CONTRATACION 2023.mdb                |   0
+ __pycache__/app.cpython-313.pyc                    | Bin [31m0[m -> [32m784[m bytes
+ __pycache__/config.cpython-313.pyc                 | Bin [31m0[m -> [32m719[m bytes
+ __pycache__/main.cpython-313.pyc                   | Bin [31m0[m -> [32m892[m bytes
+ app/__init__.py                                    |  53 [32m++++[m
+ app/__pycache__/__init__.cpython-313.pyc           | Bin [31m0[m -> [32m2200[m bytes
+ app/controladores/colegios/__init__.py             |   0
+ .../colegios/__pycache__/__init__.cpython-313.pyc  | Bin [31m0[m -> [32m188[m bytes
+ .../form_colegios_controlador.cpython-313.pyc      | Bin [31m0[m -> [32m10957[m bytes
+ .../colegios/form_colegios_controlador.py          | 152 [32m++++++++++[m
+ app/controladores/perfil_colegios/__init__.py      |   0
+ .../__pycache__/__init__.cpython-313.pyc           | Bin [31m0[m -> [32m195[m bytes
+ .../__pycache__/historial_procesos.cpython-313.pyc | Bin [31m0[m -> [32m3906[m bytes
+ .../procesos_controlador.cpython-313.pyc           | Bin [31m0[m -> [32m5372[m bytes
+ .../reportes_controlador.cpython-313.pyc           | Bin [31m0[m -> [32m17528[m bytes
+ .../perfil_colegios/historial_procesos.py          |  64 [32m+++++[m
+ .../perfil_colegios/procesos_controlador.py        |  93 [32m+++++++[m
+ .../perfil_colegios/reportes_controlador.py        | 286 [32m+++++++++++++++++++[m
+ app/controladores/proveedores/__init__.py          |   0
+ .../__pycache__/__init__.cpython-313.pyc           | Bin [31m0[m -> [32m191[m bytes
+ .../__pycache__/proveedores.cpython-313.pyc        | Bin [31m0[m -> [32m634[m bytes
+ .../proveedores_controlador.cpython-313.pyc        | Bin [31m0[m -> [32m8655[m bytes
+ .../proveedores/proveedores_controlador.py         | 115 [32m++++++++[m
+ app/modelos/__init__.py                            |   0
+ app/modelos/__pycache__/__init__.cpython-313.pyc   | Bin [31m0[m -> [32m173[m bytes
+ app/modelos/__pycache__/models.cpython-313.pyc     | Bin [31m0[m -> [32m9703[m bytes
+ app/modelos/models.py                              | 122 [32m++++++++[m
+ app/static/01 ESTUDIOS PREVIOS.docx                | Bin [31m0[m -> [32m49511[m bytes
+ app/static/ESTUDIOS PREVIOS.docx                   | Bin [31m0[m -> [32m52394[m bytes
+ app/static/correciones/03 INVITACION.docx          | Bin [31m0[m -> [32m42010[m bytes
+ app/static/correciones/04 ACTA DE CIERRE.docx      | Bin [31m0[m -> [32m30373[m bytes
+ app/static/correciones/05 EVALUACION OFERTAS .docx | Bin [31m0[m -> [32m240627[m bytes
+ .../correciones/07 COMUNICACION  ACEPTACION.docx   | Bin [31m0[m -> [32m29478[m bytes
+ app/static/correciones/08 ADJUDICACION.docx        | Bin [31m0[m -> [32m31973[m bytes
+ app/static/correciones/09 ACTA DE INICIO.docx      | Bin [31m0[m -> [32m27255[m bytes
+ .../10 ACTA RECIBIDO A SATISFACCION.docx           | Bin [31m0[m -> [32m26528[m bytes
+ app/static/correciones/ESTUDIOS PREVIOS.docx       | Bin [31m0[m -> [32m42470[m bytes
+ app/static/css/colegios/estilos_colegios.css       | 138 [32m++++++++++[m
+ app/static/css/perfil_colegios/estilos_perfil.css  |  80 [32m++++++[m
+ app/static/css/proveedores/estilos_proveedores.css |   4 [32m+[m
+ app/static/js/colegios/acciones_colegios.js        |  83 [32m++++++[m
+ app/static/js/colegios/busqueda_colegios.js        |  35 [32m+++[m
+ app/static/js/colegios/form_colegios.js            |  83 [32m++++++[m
+ .../js/perfil_colegios/exportar_documento.js       | 127 [32m+++++++++[m
+ app/static/js/perfil_colegios/generar_procesos.js  | 306 [32m+++++++++++++++++++++[m
+ .../js/perfil_colegios/historial_procesos.js       | 258 [32m+++++++++++++++++[m
+ app/static/js/perfil_colegios/proveedores.js       | 136 [32m+++++++++[m
+ app/static/js/proveedores/busqueda_proveedores.js  |  22 [32m++[m
+ app/static/js/proveedores/form_proveedores.js      | 190 [32m+++++++++++++[m
+ app/static/plantilla_proceso.docx                  | Bin [31m0[m -> [32m18790[m bytes
+ app/static/plantillas/02 ANALISIS DEL SECTOR.docx  | Bin [31m0[m -> [32m33061[m bytes
+ ...UCATIVA_TECNICA_AGROPECUARIA_DE_SANTA_CRUZ.docx | Bin [31m0[m -> [32m957370[m bytes
+ ...DUCATIVA_TECNICA_AGROPECUARIA_DE_SANTA_CRUZ.pdf | Bin [31m0[m -> [32m339502[m bytes
+ ...UDIOS PREVIOS_MUNUEL_DEL_SOCORRO_RODRIGUEZ.docx | Bin [31m0[m -> [32m68623[m bytes
+ ...TUDIOS PREVIOS_MUNUEL_DEL_SOCORRO_RODRIGUEZ.pdf | Bin [31m0[m -> [32m336358[m bytes
+ ...UDIOS PREVIOS_ANDRES_AUMADA_NARI\303\221O.docx" | Bin [31m0[m -> [32m1944945[m bytes
+ ...TUDIOS PREVIOS_ANDRES_AUMADA_NARI\303\221O.pdf" | Bin [31m0[m -> [32m229811[m bytes
+ .../temp/01_01 ESTUDIOS PREVIOS_JUANCHO_ROIS.docx  | Bin [31m0[m -> [32m1520812[m bytes
+ .../temp/01_01 ESTUDIOS PREVIOS_JUANCHO_ROIS.pdf   | Bin [31m0[m -> [32m229226[m bytes
+ ...UDIOS PREVIOS_MUNUEL_DEL_SOCORRO_RODRIGUEZ.docx | Bin [31m0[m -> [32m56276[m bytes
+ ...TUDIOS PREVIOS_MUNUEL_DEL_SOCORRO_RODRIGUEZ.pdf | Bin [31m0[m -> [32m225814[m bytes
+ ...CTA DE INICIO_MUNUEL_DEL_SOCORRO_RODRIGUEZ.docx | Bin [31m0[m -> [32m36378[m bytes
+ ...ACTA DE INICIO_MUNUEL_DEL_SOCORRO_RODRIGUEZ.pdf | Bin [31m0[m -> [32m255582[m bytes
+ ...IS DEL SECTOR_MUNUEL_DEL_SOCORRO_RODRIGUEZ.docx | Bin [31m0[m -> [32m42206[m bytes
+ ...SIS DEL SECTOR_MUNUEL_DEL_SOCORRO_RODRIGUEZ.pdf | Bin [31m0[m -> [32m153699[m bytes
+ ...UDIOS PREVIOS_MUNUEL_DEL_SOCORRO_RODRIGUEZ.docx | Bin [31m0[m -> [32m49308[m bytes
+ ...TUDIOS PREVIOS_MUNUEL_DEL_SOCORRO_RODRIGUEZ.pdf | Bin [31m0[m -> [32m336546[m bytes
+ .../temp/01_ESTUDIOS PREVIOS_PEDRO_HERRERA_.docx   | Bin [31m0[m -> [32m3359456[m bytes
+ .../temp/01_ESTUDIOS PREVIOS_PEDRO_HERRERA_.pdf    | Bin [31m0[m -> [32m238585[m bytes
+ ...TILLA_PROCESO_ANDRES_AUMADA_NARI\303\221O.docx" | Bin [31m0[m -> [32m2100390[m bytes
+ ...NTILLA_PROCESO_ANDRES_AUMADA_NARI\303\221O.pdf" | Bin [31m0[m -> [32m57729[m bytes
+ .../temp/01_PLANTILLA_PROCESO_JUANCHO_ROIS.docx    | Bin [31m0[m -> [32m1490983[m bytes
+ .../temp/01_PLANTILLA_PROCESO_JUANCHO_ROIS.pdf     | Bin [31m0[m -> [32m61143[m bytes
+ ...TILLA_PROCESO_MUNUEL_DEL_SOCORRO_RODRIGUEZ.docx | Bin [31m0[m -> [32m27186[m bytes
+ ...NTILLA_PROCESO_MUNUEL_DEL_SOCORRO_RODRIGUEZ.pdf | Bin [31m0[m -> [32m61764[m bytes
+ ...UCATIVA_TECNICA_AGROPECUARIA_DE_SANTA_CRUZ.docx | Bin [31m0[m -> [32m944163[m bytes
+ ...DUCATIVA_TECNICA_AGROPECUARIA_DE_SANTA_CRUZ.pdf | Bin [31m0[m -> [32m159775[m bytes
+ ...IS DEL SECTOR_MUNUEL_DEL_SOCORRO_RODRIGUEZ.docx | Bin [31m0[m -> [32m42901[m bytes
+ ...SIS DEL SECTOR_MUNUEL_DEL_SOCORRO_RODRIGUEZ.pdf | Bin [31m0[m -> [32m147018[m bytes
+ ...IS DEL SECTOR_ANDRES_AUMADA_NARI\303\221O.docx" | Bin [31m0[m -> [32m1930745[m bytes
+ ...SIS DEL SECTOR_ANDRES_AUMADA_NARI\303\221O.pdf" | Bin [31m0[m -> [32m156585[m bytes
+ .../02_02 ANALISIS DEL SECTOR_JUANCHO_ROIS.docx    | Bin [31m0[m -> [32m1506679[m bytes
+ .../02_02 ANALISIS DEL SECTOR_JUANCHO_ROIS.pdf     | Bin [31m0[m -> [32m156639[m bytes
+ ...IS DEL SECTOR_MUNUEL_DEL_SOCORRO_RODRIGUEZ.docx | Bin [31m0[m -> [32m42206[m bytes
+ ...SIS DEL SECTOR_MUNUEL_DEL_SOCORRO_RODRIGUEZ.pdf | Bin [31m0[m -> [32m153699[m bytes
+ .../02_03 CDP_MUNUEL_DEL_SOCORRO_RODRIGUEZ.docx    | Bin [31m0[m -> [32m60408[m bytes
+ .../02_03 CDP_MUNUEL_DEL_SOCORRO_RODRIGUEZ.pdf     | Bin [31m0[m -> [32m200373[m bytes
+ ... SATISFACCION_MUNUEL_DEL_SOCORRO_RODRIGUEZ.docx | Bin [31m0[m -> [32m35009[m bytes
+ ...A SATISFACCION_MUNUEL_DEL_SOCORRO_RODRIGUEZ.pdf | Bin [31m0[m -> [32m256671[m bytes
+ ...UDIOS PREVIOS_MUNUEL_DEL_SOCORRO_RODRIGUEZ.docx | Bin [31m0[m -> [32m56276[m bytes
+ ...TUDIOS PREVIOS_MUNUEL_DEL_SOCORRO_RODRIGUEZ.pdf | Bin [31m0[m -> [32m225814[m bytes
+ ...TILLA_PROCESO_MUNUEL_DEL_SOCORRO_RODRIGUEZ.docx | Bin [31m0[m -> [32m26113[m bytes
