@@ -8,7 +8,7 @@ from num2words import num2words
 import threading
 from PIL import Image
 import locale
-
+from datetime import datetime
 
 pdf_lock = threading.Lock()
 reportes_bp = Blueprint('reportes', __name__)
@@ -217,24 +217,31 @@ def lista_plantillas():
 
 
 def convertir_a_pdf_libreoffice(ruta_docx, carpeta_destino):
-    """Usa LibreOffice para convertir de forma industrial"""
-    # Ruta al ejecutable que verificamos
-    libreoffice_exe = r"C:\Program Files\LibreOffice\program\soffice.exe"
+    """Usa LibreOffice de forma híbrida (Windows local / Linux Servidor)"""
     
+    # --- DETECCIÓN DE ENTORNO ---
+    if platform.system() == "Windows":
+        # Ruta en tu PC Acer
+        libreoffice_exe = r"C:\Program Files\LibreOffice\program\soffice.exe"
+    else:
+        # Ruta estándar en PythonAnywhere / Linux
+        # Normalmente basta con 'libreoffice' o 'soffice'
+        libreoffice_exe = 'libreoffice' 
+
     comando = [
         libreoffice_exe,
-        '--headless',                 # No abre la ventana de la app
-        '--convert-to', 'pdf',        # Formato de salida
-        '--outdir', carpeta_destino,  # Donde guardar el PDF
-        ruta_docx                     # Archivo a convertir
+        '--headless',
+        '--convert-to', 'pdf',
+        '--outdir', carpeta_destino,
+        ruta_docx
     ]
     
     try:
-        # Ejecutamos el comando con un tiempo límite de 30 segundos
-        subprocess.run(comando, check=True, timeout=30, capture_output=True)
+        # Ejecutamos con capture_output para no ensuciar la consola del servidor
+        subprocess.run(comando, check=True, timeout=35, capture_output=True)
         return True
     except Exception as e:
-        print(f"Error en conversión LibreOffice: {e}")
+        print(f"Error en conversión ({platform.system()}): {e}")
         return False
 
 @reportes_bp.route('/descargar_zip/<int:proceso_id>')
