@@ -63,100 +63,98 @@
         </div>
 
        <div class="row">
-            <div class="col-lg-8 mb-4">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-header bg-white py-3 border-0">
-                        <h5 class="mb-0 text-primary fw-bold">
-                            <i class="bi bi-file-earmark-word-fill me-2"></i>Generación de Procesos
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="selector-vigencia-container">
-                            <label class="form-label fw-bold small text-primary text-uppercase">Vigencia del Proceso</label>
-                            
-                            <div class="row g-2">
-                                   <div class="row g-2 align-items-center">
-                                             <div class="col-md-6">
-                                                 <div class="dropdown">
-                                                      <button class="btn btn-outline-secondary btn-sm w-100 shadow-sm" 
-                                                         type="button" id="btnDesplegarAnios" data-bs-toggle="dropdown">
-                                                          <span><i class="bi bi-calendar3 me-2 text-primary"></i> Año: <strong id="anioSeleccionadoTexto">2026</strong></span>
-                                                     </button>
-                                           <div class="dropdown-menu dropdown-anios shadow-lg">
-                                                    <div id="gridAnios"></div>
-                                          </div>
-                                     </div>
-                                         <input type="hidden" id="vigenciaProceso" value="2026">
-                                 </div>
+    <div class="col-lg-8 mb-3">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-2 border-0">
+                <h6 class="mb-0 text-primary fw-bold">
+                    <i class="bi bi-file-earmark-word-fill me-2"></i>Generación de Procesos
+                </h6>
+            </div>
+            <div class="card-body py-3">
+                <div class="alert alert-light border-0 bg-light p-2 mb-3 rounded-3">
+                    <p class="mb-0 small text-secondary" style="font-size: 0.8rem;">
+                        <i class="bi bi-info-circle-fill me-1 text-primary"></i>
+                        Cree nuevos procesos. El sistema vinculará automáticamente datos de colegio y proveedor.
+                    </p>
+                </div>
 
-                                       <div class="col-md-6 d-flex gap-2">
-
-
-                                               <button class="btn btn-primary btn-sm flex-fill shadow-sm fw-bold" 
-                                                    onclick="abrirGeneradorDocs()">
-                                                       <i class="bi bi-magic"></i> Crear
-                                             </button>
-
-                                             <button class="btn btn-outline-primary btn-sm flex-fill shadow-sm fw-bold" 
-                                                   onclick="abrirHistorial('{{ colegio.id }}')">
-                                                        <i class="bi bi-clock-history"></i> Historial
-                                            </button>
-        
-        
-                                       </div>
-                                 </div>
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <button class="btn btn-primary w-100 py-2 shadow-sm border-0 d-flex align-items-center justify-content-center gap-2" 
+                                onclick="abrirGeneradorDocs()"
+                                style="transition: transform 0.2s;">
+                            <i class="bi bi-plus-circle-fill fs-6"></i>
+                            <div class="text-start">
+                                <span class="d-block fw-bold small">Crear Nuevo Proceso</span>
+                                <small class="d-block opacity-75 fw-normal" style="font-size: 0.65rem;">Generar expediente</small>
                             </div>
-                            <div class="form-text mt-3 small">
-                                <i class="bi bi-info-circle me-1"></i> Seleccione el año para el expediente. Los datos del proveedor y colegio se cargarán automáticamente.
-                            </div>
-                        </div> 
-                    </div> </div> </div> <div class="col-lg-4 mb-4">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3 border-0">
-                        <h5 class="mb-0 text-primary fw-bold">
-                            <i class="bi bi-truck me-2"></i>Proveedores
-                        </h5>
-                        <button class="btn btn-sm btn-success rounded-circle shadow-sm" 
-                                data-bs-toggle="modal" 
-                                data-bs-target="#vincularProveedorModal" 
-                                title="Vincular Proveedor">
-                            <i class="bi bi-plus-lg"></i>
                         </button>
                     </div>
-                    <div class="card-body p-3">
-                        <ul class="list-group list-group-flush" id="listaProveedores">
-                            {% if colegio.proveedores %}
-                                {% for prov in colegio.proveedores %}
-                                      <li class="list-group-item d-flex justify-content-between align-items-center px-0 bg-transparent py-2">
-                                          <div class="overflow-hidden me-2">
-                                             <div class="fw-bold mb-0 text-truncate" style="max-width: 180px;">
-                                                   <i class="bi bi-person-fill me-1 text-primary"></i>
-                                                   {{ prov.primer_nombre }} {{ prov.primer_apellido }}
-                                             </div>
-                                             <small class="text-muted d-block ps-4">NIT/CC: {{ prov.documento }}</small>
-                                          </div>
-                                          <div class="d-flex gap-1">
-                                               <button class="btn btn-link btn-sm text-info p-1 shadow-none" 
-                                                       onclick="verDetalleProveedor('{{ prov.id }}')"> 
-                                                   <i class="bi bi-eye"></i>
-                                               </button>
-                                               <button type="button" class="btn btn-link btn-sm text-danger p-1 shadow-none" 
-                                                       onclick="confirmarDesvinculacion('{{ colegio.id }}', '{{ prov.id }}', '{{ prov.primer_nombre }} {{ prov.primer_apellido }}')">
-                                                   <i class="bi bi-trash"></i>
-                                               </button>
-                                          </div>
-                                      </li>
-                                {% endfor %}
-                            {% else %}
-                                <li class="list-group-item text-center py-4 border-0">
-                                    <i class="bi bi-info-circle d-block fs-2 text-muted mb-2"></i>
-                                    <p class="text-muted small mb-0">No hay proveedores vinculados aún.</p>
-                                </li>
-                            {% endif %}
-                        </ul>
+                    <div class="col-md-6">
+                        <button class="btn btn-outline-primary w-100 py-2 shadow-sm d-flex align-items-center justify-content-center gap-2" 
+                                onclick="abrirHistorial('{{ colegio.id }}')"
+                                style="transition: transform 0.2s;">
+                            <i class="bi bi-clock-history fs-6"></i>
+                            <div class="text-start">
+                                <span class="d-block fw-bold small">Consultar Historial</span>
+                                <small class="d-block text-muted fw-normal" style="font-size: 0.65rem;">Ver procesos anteriores</small>
+                            </div>
+                        </button>
                     </div>
                 </div>
-            </div> </div> 
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4 mb-3">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-2 border-0">
+                <h6 class="mb-0 text-primary fw-bold">
+                    <i class="bi bi-truck me-2"></i>Proveedores
+                </h6>
+                <button class="btn btn-sm btn-success rounded-circle shadow-sm p-0 d-flex align-items-center justify-content-center" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#vincularProveedorModal" 
+                        style="width: 28px; height: 28px;"
+                        title="Vincular Proveedor">
+                    <i class="bi bi-plus-lg"></i>
+                </button>
+            </div>
+            <div class="card-body p-2">
+                <ul class="list-group list-group-flush" id="listaProveedores" style="max-height: 150px; overflow-y: auto;">
+                    {% if colegio.proveedores %}
+                        {% for prov in colegio.proveedores %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-2 bg-transparent py-1 border-bottom">
+                                <div class="overflow-hidden me-2">
+                                    <div class="fw-bold mb-0 text-truncate small" style="max-width: 150px;">
+                                        {{ prov.primer_nombre }} {{ prov.primer_apellido }}
+                                    </div>
+                                    <small class="text-muted d-block" style="font-size: 0.7rem;">NIT: {{ prov.documento }}</small>
+                                </div>
+                                <div class="d-flex gap-1">
+                                    <button class="btn btn-light btn-sm text-info p-0 border d-flex align-items-center justify-content-center" 
+                                            style="width: 24px; height: 24px;"
+                                            onclick="verDetalleProveedor('{{ prov.id }}')"> 
+                                        <i class="bi bi-eye" style="font-size: 0.75rem;"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-light btn-sm text-danger p-0 border d-flex align-items-center justify-content-center" 
+                                            style="width: 24px; height: 24px;"
+                                            onclick="confirmarDesvinculacion('{{ colegio.id }}', '{{ prov.id }}', '{{ prov.primer_nombre }} {{ prov.primer_apellido }}')">
+                                        <i class="bi bi-trash" style="font-size: 0.75rem;"></i>
+                                    </button>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    {% else %}
+                        <li class="list-group-item text-center py-3 border-0">
+                            <p class="text-muted mb-0" style="font-size: 0.75rem;">No hay proveedores vinculados.</p>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
 
 
 
@@ -177,8 +175,10 @@
     <script src="{{ url_for('static', filename='js/perfil_colegios/exportar_documento.js') }}"></script>
     <!--Js para el historial de procesos-->
     <script src="{{ url_for('static', filename='js/perfil_colegios/historial_procesos.js') }}"></script>
-
+    <!--JS para sacar el rubro y codigo presupuestal-->
     <script src="{{ url_for('static', filename='js/perfil_colegios/presupuesto.js') }}"></script>
+    <!--Js para editar los procesos-->
+    <script src="{{ url_for('static', filename='js/perfil_colegios/editar_historial.js') }}"></script>
     <!--Conexion con modales-->
     {% include 'perfil_colegios/_modales_perfil.html' %}
     {% include 'perfil_colegios/modal_generador_documentos.html' %}

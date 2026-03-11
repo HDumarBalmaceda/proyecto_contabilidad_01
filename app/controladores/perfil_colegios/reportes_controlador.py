@@ -2,13 +2,15 @@ from flask import Blueprint, request, current_app, send_file, jsonify
 from app.modelos.models import ProcesoContractual, Colegio, Proveedor
 from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm
-import os, re, zipfile, subprocess  # <--- Agregamos subprocess para LibreOffice
+import os, re, zipfile, subprocess, platform  # <--- Agregamos subprocess para LibreOffice
 from io import BytesIO
 from num2words import num2words
 import threading
 from PIL import Image
 import locale
 from datetime import datetime
+import shutil
+from flask import after_this_request
 
 pdf_lock = threading.Lock()
 reportes_bp = Blueprint('reportes', __name__)
@@ -66,115 +68,102 @@ def fecha_texto_legal(fecha):
     return f"{dia_letras} ({fecha.day:02d}) días del mes de {meses[fecha.month - 1]} de {anio_letras} ({fecha.year})"
 
 
-# --- 2. FUNCIÓN PRINCIPAL DEL CONTEXTO ---
+# 1. Mueve esta función afuera, justo debajo de las otras funciones de fecha
+def f_str(fecha_obj):
+    try:
+        if fecha_obj and hasattr(fecha_obj, 'strftime'):
+            return fecha_obj.strftime('%d/%m/%Y')
+        return ""
+    except:
+        return ""
+
+# 2. Reemplaza TODA la función obtener_contexto_proceso con esta versión "Tanque"
 def obtener_contexto_proceso(proceso_id):
-    """Extrae datos y formatea fechas en estilo contractual largo"""
+    """Extrae datos con protección extrema contra valores nulos y errores de tipo"""
     proceso = ProcesoContractual.query.get_or_404(proceso_id)
-
-    # DEBUG: Útil para ver en consola qué estamos procesando
-    print(f"\n[SISTEMA] Generando contexto para Proceso ID: {proceso_id}")
-
     colegio = Colegio.query.get(proceso.colegio_id)
     
-    # 1. IDENTIFICACIÓN DE PROVEEDORES
-    prov1 = Proveedor.query.get(proceso.proveedor_id)
-    prov2 = Proveedor.query.get(getattr(proceso, 'proveedor2_id', None))
-    prov3 = Proveedor.query.get(getattr(proceso, 'proveedor3_id', None))
+    # --- FUNCION DE APOYO INTERNA ---
+    def safe_int(val):
+        try: 
+            if val in [None, "", "null", "undefined"]: return None
+            return int(float(val))
+        except: return None
 
-    # MEJORA: Nombre limpio más robusto para evitar errores en nombres de archivos ZIP
-    nombre_col_limpio = re.sub(r'[^\w]', '_', colegio.nombre).replace("__", "_").upper()
+    # --- PROVEEDORES ---
+    prov1 = Proveedor.query.get(proceso.proveedor_id) if proceso.proveedor_id else None
+    prov2 = Proveedor.query.get(proceso.proveedor2_id) if getattr(proceso, 'proveedor2_id', None) else None
+    prov3 = Proveedor.query.get(proceso.proveedor3_id) if getattr(proceso, 'proveedor3_id', None) else None
 
-    # 2. ÍTEMS Y TOTALES
+    # --- VIGENCIA ---
+    vigencia_db = safe_int(proceso.vigencia)
+    anio_base = vigencia_db if vigencia_db else datetime.now().year
+
+    # --- ITEMS ---
     items_tabla = []
     total_acumulado = 0
     items_query = proceso.detalles_items if hasattr(proceso, 'detalles_items') else proceso.details_items
     
     for item in items_query:
+        v_unit = float(item.v_unitario or 0)
+        v_tot = float(item.v_total or 0)
+        cant_val = float(item.cantidad or 0)
+        
         items_tabla.append({
-            'cant': int(item.cantidad) if item.cantidad % 1 == 0 else item.cantidad,
+            'cant': int(cant_val) if cant_val % 1 == 0 else cant_val,
             'cod': str(item.codigo_clasificador or '').strip(),
             'desc': str(item.descripcion or '').strip(),
-            'unit': f"{item.v_unitario:,.0f}",
-            'total': f"{item.v_total:,.0f}"
+            'unit': f"{v_unit:,.0f}",
+            'total': f"{v_tot:,.0f}"
         })
-        total_acumulado += item.v_total
+        total_acumulado += v_tot
 
-    # 3. TOTAL EN LETRAS
-    try:
-        total_letras_final = f"{num2words(total_acumulado, lang='es').upper()} PESOS M/L"
-    except Exception as e:
-        print(f"Error en num2words: {e}")
-        total_letras_final = "ERROR EN CONVERSIÓN DE LETRAS"
-
-    # 4. FORMATEAR NOMBRES CONTRATISTAS
+    # --- NOMBRES ---
     def format_p(p):
-        if not p: return "", ""
-        
-        # 1. Si existe razón social (y no es solo un número), la usamos directamente
+        if not p: return "NO ASIGNADO", "S.D."
         if p.razon_social and str(p.razon_social).strip() and not str(p.razon_social).isdigit():
-            nombre_final = p.razon_social
+            nombre = p.razon_social
         else:
-            # 2. Si es persona natural, unimos los 4 campos de nombre de forma limpia
-            # Usamos filter(None, ...) para que si un campo es vacío no genere espacios dobles
-            nombres = [
-                p.primer_nombre, 
-                p.segundo_nombre, 
-                p.primer_apellido, 
-                p.segundo_apellido
-            ]
-            # Limpiamos cada parte y quitamos los que sean None o estén vacíos
-            partes_limpias = [str(n).strip() for n in nombres if n and str(n).strip()]
-            nombre_final = " ".join(partes_limpias)
-        
-        return nombre_final.upper().strip(), p.documento
+            partes = [p.primer_nombre, p.segundo_nombre, p.primer_apellido, p.segundo_apellido]
+            nombre = " ".join([str(n).strip() for n in partes if n and str(n).strip()])
+        return (nombre or "S.D.").upper(), (p.documento or "S.D.")
 
-    # El resto del código sigue igual, llamando a la función:
     n1, d1 = format_p(prov1)
     n2, d2 = format_p(prov2)
     n3, d3 = format_p(prov3)
 
-    # --- LÓGICA DE CONTEO DE COTIZACIONES ---
-    conteo_cotizaciones = 1
-    if proceso.valor_propuesta2 and proceso.valor_propuesta2 > 0:
-        conteo_cotizaciones += 1
-    if proceso.valor_propuesta3 and proceso.valor_propuesta3 > 0:
-        conteo_cotizaciones += 1
-    
-    # Convertimos a entero por seguridad si viene como string
-    anio_base = int(proceso.vigencia) if proceso.vigencia else datetime.now().year
-    
-    # 5. CONTEXTO FINAL
+    # --- COTIZACIONES ---
+    v2 = float(proceso.valor_propuesta2 or 0)
+    v3 = float(proceso.valor_propuesta3 or 0)
+    conteo_cotizaciones = 1 + (1 if v2 > 0 else 0) + (1 if v3 > 0 else 0)
+
+    nombre_col_limpio = re.sub(r'[^\w]', '_', colegio.nombre).replace("__", "_").upper()
+
     contexto = {
-        'col_nombre': colegio.nombre.upper(),
-        'col_nit': colegio.nit,
-        'col_rector': colegio.rector_nombre,
-        'col_municipio': colegio.municipio,
-        'col_direccion': colegio.direccion,
-        'doc_rector': colegio.rector_documento,
+        'col_nombre': (colegio.nombre or "").upper(),
+        'col_nit': colegio.nit or "",
+        'col_rector': colegio.rector_nombre or "",
+        'col_municipio': colegio.municipio or "",
+        'col_direccion': colegio.direccion or "",
+        'doc_rector': colegio.rector_documento or "",
         'vigencia': anio_base,
-        'ano_anterior': anio_base - 1,      # Ejemplo: 2024 -> 2023
-        'dos_anos_antes': anio_base - 2,    # Ejemplo: 2024 -> 2022
-        'tipo_contrato': proceso.tipo_contrato,
-        'objeto': proceso.objeto_desc,
-        
+        'ano_anterior': anio_base - 1,
+        'dos_anos_antes': anio_base - 2,
+        'tipo_contrato': proceso.tipo_contrato or "",
+        'objeto': proceso.objeto_desc or "",
         'contratista': n1, 'doc_contratista': d1,
         'contratista2': n2, 'doc_contratista2': d2,
         'contratista3': n3, 'doc_contratista3': d3,
-        
-        'cdp_numero': proceso.cdp_numero,
-        'rubro': proceso.rubro_nombre,
-        'cod_presupuestal': proceso.cod_presupuestal,
-        
-        # Fechas en formato corto DD/MM/AAAA
-        'f_elaboracion': proceso.f_elaboracion.strftime('%d/%m/%Y') if proceso.f_elaboracion else "",
-        'f_publicacion': proceso.f_publicacion.strftime('%d/%m/%Y') if proceso.f_publicacion else "",
-        'f_recepcion': proceso.f_recepcion.strftime('%d/%m/%Y') if proceso.f_recepcion else "",
-        'f_cierre': proceso.f_cierre.strftime('%d/%m/%Y') if proceso.f_cierre else "",
-        'f_verificacion': proceso.f_verificacion.strftime('%d/%m/%Y') if proceso.f_verificacion else "",
-        'f_firma': proceso.f_firma.strftime('%d/%m/%Y') if proceso.f_firma else "",
-        'f_recibido': proceso.f_recibido.strftime('%d/%m/%Y') if proceso.f_recibido else "",
-        
-        # Textos legales usando tus funciones (ya validadas)
+        'cdp_numero': proceso.cdp_numero or "",
+        'rubro': proceso.rubro_nombre or "",
+        'cod_presupuestal': proceso.cod_presupuestal or "",
+        'f_elaboracion': f_str(proceso.f_elaboracion),
+        'f_publicacion': f_str(proceso.f_publicacion),
+        'f_recepcion': f_str(proceso.f_recepcion),
+        'f_cierre': f_str(proceso.f_cierre),
+        'f_verificacion': f_str(proceso.f_verificacion),
+        'f_firma': f_str(proceso.f_firma),
+        'f_recibido': f_str(proceso.f_recibido),
         'f_elaboracion_texto': fecha_texto_largo(proceso.f_elaboracion),
         'f_elaboracion_legal': fecha_texto_legal(proceso.f_elaboracion),
         'f_publicacion_texto': fecha_texto_largo(proceso.f_publicacion),
@@ -189,16 +178,14 @@ def obtener_contexto_proceso(proceso_id):
         'f_firma_legal': fecha_texto_legal(proceso.f_firma),
         'f_recibido_texto': fecha_texto_largo(proceso.f_recibido),
         'f_recibido_legal': fecha_texto_legal(proceso.f_recibido),
-        
-        'plazo_txt': proceso.plazo_txt,
+        'plazo_txt': proceso.plazo_txt or "",
         'items': items_tabla,
         'total_final': f"${total_acumulado:,.0f}",
-        'total_letras': total_letras_final,
-        'promedio_valor': f"${proceso.promedio_propuestas:,.0f}",
+        'total_letras': f"{num2words(total_acumulado, lang='es').upper()} PESOS M/L" if total_acumulado > 0 else "CERO PESOS",
+        'promedio_valor': f"${(proceso.promedio_propuestas or 0):,.0f}",
         'cantidad_cotizaciones': conteo_cotizaciones,
-
-        'valor_propuesta2': f"${proceso.valor_propuesta2:,.0f}" if proceso.valor_propuesta2 else "$ 0",
-        'valor_propuesta3': f"${proceso.valor_propuesta3:,.0f}" if proceso.valor_propuesta3 else "$ 0",
+        'valor_propuesta2': f"${v2:,.0f}",
+        'valor_propuesta3': f"${v3:,.0f}",
     }
     return contexto, colegio, nombre_col_limpio
 
@@ -247,6 +234,7 @@ def convertir_a_pdf_libreoffice(ruta_docx, carpeta_destino):
 @reportes_bp.route('/descargar_zip/<int:proceso_id>')
 def descargar_zip(proceso_id):
     formato = request.args.get('formato', 'word').lower()
+    archivos_creados = [] 
     try:
         contexto, colegio, nombre_col_limpio = obtener_contexto_proceso(proceso_id)
         ruta_plantillas = os.path.join(current_app.root_path, 'static', 'plantillas')
@@ -255,26 +243,23 @@ def descargar_zip(proceso_id):
         os.makedirs(ruta_temp, exist_ok=True)
         
         zip_buffer = BytesIO()
-        with zipfile.ZipFile(zip_buffer, 'w') as zf:
+        
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
             for nombre_p in archivos_docs:
                 doc = DocxTemplate(os.path.join(ruta_plantillas, nombre_p))
                 
-                # --- PROCESAR LOGO (Con nueva función de ruta temporal) ---
-        
+                # Logos y Firmas (Optimizados en temp)
                 if colegio.logo_path:
-                    r_logo_orig = os.path.join(current_app.root_path, 'static', 'uploads', colegio.logo_path)
-                    r_logo_opt = redimensionar_imagen(r_logo_orig, ancho_max=300)
-                    if r_logo_opt:
-                    # Tamaño reducido a 20mm para que no descuadre la cabecera
+                    r_logo_opt = redimensionar_imagen(os.path.join(current_app.root_path, 'static', 'uploads', colegio.logo_path), 300)
+                    if r_logo_opt: 
                         contexto['logo'] = InlineImage(doc, r_logo_opt, width=Mm(20))
+                        if r_logo_opt not in archivos_creados: archivos_creados.append(r_logo_opt)
 
-                # --- PROCESAR FIRMA ---
                 if colegio.firma_path:
-                    r_firma_orig = os.path.join(current_app.root_path, 'static', 'uploads', colegio.firma_path)
-                    r_firma_opt = redimensionar_imagen(r_firma_orig, ancho_max=450)
-                    if r_firma_opt:
-                    # Tamaño reducido a 35mm para que se vea elegante
+                    r_firma_opt = redimensionar_imagen(os.path.join(current_app.root_path, 'static', 'uploads', colegio.firma_path), 450)
+                    if r_firma_opt: 
                         contexto['firma'] = InlineImage(doc, r_firma_opt, width=Mm(35))
+                        if r_firma_opt not in archivos_creados: archivos_creados.append(r_firma_opt)
 
                 doc.render(contexto)
                 
@@ -282,33 +267,49 @@ def descargar_zip(proceso_id):
                 nombre_base_final = f"{nombre_plantilla_limpio}_{nombre_col_limpio}"
                 path_word = os.path.join(ruta_temp, f"{nombre_base_final}.docx")
                 doc.save(path_word)
+                archivos_creados.append(path_word)
                 
                 if formato == 'pdf':
-                    # Usamos el Lock para que LibreOffice no se sature procesando 10 archivos a la vez
                     with pdf_lock:
-                        exito = convertir_a_pdf_libreoffice(path_word, ruta_temp)
-                        if exito:
+                        if convertir_a_pdf_libreoffice(path_word, ruta_temp):
                             path_pdf = path_word.replace(".docx", ".pdf")
                             zf.write(path_pdf, arcname=f"{nombre_base_final}.pdf")
-                            # Limpieza inmediata del PDF temporal
-                            if os.path.exists(path_pdf): os.remove(path_pdf)
+                            archivos_creados.append(path_pdf)
                         else:
-                            # Si falla el PDF, enviamos el Word para no dejar al usuario sin nada
                             zf.write(path_word, arcname=f"{nombre_base_final}.docx")
                 else:
                     zf.write(path_word, arcname=f"{nombre_base_final}.docx")
-                
-                # Limpieza del Word temporal
-                if os.path.exists(path_word):
-                    os.remove(path_word)
 
         zip_buffer.seek(0)
+        
+        # --- BLOQUE DE LIMPIEZA POST-RESPUESTA ---
+        @after_this_request
+        def limpiar_basura_temporal(response):
+            # 1. Borrar los archivos que rastreamos en la lista
+            for ruta in archivos_creados:
+                try:
+                    if os.path.exists(ruta):
+                        os.remove(ruta)
+                except Exception as e:
+                    print(f"Error borrando archivo específico {ruta}: {e}")
+            
+            # 2. Limpieza de seguridad: Borrar cualquier imagen 'opt_' que haya quedado
+            try:
+                for f in os.listdir(ruta_temp):
+                    if f.startswith("opt_"):
+                        os.remove(os.path.join(ruta_temp, f))
+            except Exception as e:
+                print(f"Error en limpieza de seguridad de imágenes: {e}")
+            
+            return response
+
         return send_file(
             zip_buffer, 
             mimetype='application/zip', 
             as_attachment=True, 
             download_name=f"PAQUETE_{nombre_col_limpio}.zip"
         )
+
     except Exception as e:
         print(f"ERROR GENERANDO ZIP: {str(e)}")
         return f"Error: {str(e)}", 500
@@ -316,37 +317,40 @@ def descargar_zip(proceso_id):
 @reportes_bp.route('/descargar_individual/<int:proceso_id>/<string:nombre_p>')
 def descargar_individual(proceso_id, nombre_p):
     formato = request.args.get('formato', 'word').lower()
+    archivos_a_borrar = [] # Lista para rastrear Word, PDF e imágenes temporales
+    
     try:
         contexto, colegio, nombre_col_limpio = obtener_contexto_proceso(proceso_id)
         ruta_plantillas = os.path.join(current_app.root_path, 'static', 'plantillas')
+        ruta_temp = os.path.join(current_app.root_path, 'static', 'temp')
+        os.makedirs(ruta_temp, exist_ok=True)
         
         doc = DocxTemplate(os.path.join(ruta_plantillas, nombre_p))
 
-        # --- PROCESAR LOGO (Nueva lógica optimizada) ---
+        # --- LOGO (Optimizado) ---
         if colegio.logo_path:
             r_logo_orig = os.path.join(current_app.root_path, 'static', 'uploads', colegio.logo_path)
-            # Usamos la nueva función que guarda en temp y devuelve la ruta
             r_logo_opt = redimensionar_imagen(r_logo_orig, ancho_max=300)
             if r_logo_opt:
                 contexto['logo'] = InlineImage(doc, r_logo_opt, width=Mm(28))
+                archivos_a_borrar.append(r_logo_opt) # <--- A la lista
 
-        # --- PROCESAR FIRMA (Nueva lógica optimizada) ---
+        # --- FIRMA (Optimizado) ---
         if colegio.firma_path:
             r_firma_orig = os.path.join(current_app.root_path, 'static', 'uploads', colegio.firma_path)
             r_firma_opt = redimensionar_imagen(r_firma_orig, ancho_max=450)
             if r_firma_opt:
                 contexto['firma'] = InlineImage(doc, r_firma_opt, width=Mm(25))
+                archivos_a_borrar.append(r_firma_opt) # <--- A la lista
 
         doc.render(contexto)
         
         nombre_plantilla_limpio = os.path.splitext(nombre_p)[0].upper()
         nombre_base_final = f"{nombre_plantilla_limpio}_{nombre_col_limpio}"
         
-        ruta_temp = os.path.join(current_app.root_path, 'static', 'temp')
-        os.makedirs(ruta_temp, exist_ok=True)
-        
         path_word = os.path.join(ruta_temp, f"{nombre_base_final}.docx")
         doc.save(path_word)
+        archivos_a_borrar.append(path_word) # <--- A la lista
         
         # --- LÓGICA DE ENVÍO Y CONVERSIÓN ---
         archivo_a_enviar = path_word
@@ -354,18 +358,26 @@ def descargar_individual(proceso_id, nombre_p):
         mimetype_final = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
         if formato == 'pdf':
-            # Reemplazamos pythoncom y docx2pdf por nuestro nuevo motor LibreOffice
             with pdf_lock: 
-                exito = convertir_a_pdf_libreoffice(path_word, ruta_temp)
-                if exito:
+                if convertir_a_pdf_libreoffice(path_word, ruta_temp):
                     path_pdf = path_word.replace(".docx", ".pdf")
                     archivo_a_enviar = path_pdf
                     nombre_final_con_ext = f"{nombre_base_final}.pdf"
                     mimetype_final = 'application/pdf'
-                    # Opcional: eliminar el word si se generó el PDF con éxito
-                    if os.path.exists(path_word): os.remove(path_word)
+                    archivos_a_borrar.append(path_pdf) # <--- También borraremos el PDF
                 else:
-                    print("Fallo la conversión individual, enviando Word de respaldo.")
+                    print("Fallo conversión, enviando Word.")
+
+        # --- LLAVAZO DE LIMPIEZA ---
+        @after_this_request
+        def cleanup(response):
+            for path in archivos_a_borrar:
+                try:
+                    if os.path.exists(path):
+                        os.remove(path)
+                except Exception as e:
+                    print(f"No se pudo borrar temporal {path}: {e}")
+            return response
 
         return send_file(
             archivo_a_enviar, 

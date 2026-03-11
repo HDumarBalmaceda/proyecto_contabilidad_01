@@ -1,0 +1,15 @@
+# Ignorar entorno virtual
+.venv/
+venv/
+
+# Ignorar caché de Python
+**/__pycache__/
+*.pyc
+
+# Ignorar la base de datos local (importante para no sobreescribir la del servidor)
+instance/
+*.db
+
+# --- ESTA ES LA REGLA PARA TEMP ---
+static/temp/*
+!static/temp/.gitkeep

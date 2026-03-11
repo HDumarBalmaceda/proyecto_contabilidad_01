@@ -52,6 +52,7 @@ def historial_json(colegio_id):
                  'objeto_corto': (p.objeto_desc[:85] + '...') if p.objeto_desc and len(p.objeto_desc) > 85 else (p.objeto_desc or "Sin objeto"),
                  'proveedor': nombre_final.upper(),
                  'nit_proveedor': documento_final,
+                 'numero_proceso_colegio': p.numero_proceso_colegio,
                  'valor': f"${total_proceso:,.0f}",
                  'plazo': p.plazo_txt or "No definido",
                  'fecha_creacion': p.fecha_creacion.strftime('%d/%m/%Y') if p.fecha_creacion else "N/A"

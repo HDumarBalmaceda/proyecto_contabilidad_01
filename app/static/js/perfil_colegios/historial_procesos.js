@@ -69,6 +69,7 @@ function abrirHistorial(colegioId) {
                 `<div class="alert alert-danger m-3 small">Error al cargar historial.</div>`;
         });
 }
+window.abrirHistorial = abrirHistorial;
 
 // Función para alternar orden y redibujar
 function alternarOrden() {
@@ -104,7 +105,7 @@ function dibujarListaProcesos(data) {
             <div class="row align-items-center">
                 <div class="col-auto text-center border-end pe-4" style="min-width: 120px;">
                     <div class="fw-bold text-primary h5 mb-0">${proceso.vigencia}</div>
-                    <div class="badge bg-secondary-subtle text-secondary border small">PROCESO #${proceso.id}</div>
+                    <div class="badge bg-secondary-subtle text-secondary border small">PROCESO #${proceso.numero_proceso_colegio || '-' }</div>
                 </div>
 
                 <div class="col ms-2">
@@ -113,7 +114,7 @@ function dibujarListaProcesos(data) {
                         <h6 class="mb-0 text-uppercase fw-bold text-dark" style="font-size: 0.9rem;">
                             ${proceso.tipo_contrato} 
                         </h6>
-                        <span class="ms-2 text-muted small fw-normal">| ID: ${proceso.id}</span>
+                        <span class="ms-2 text-muted small fw-normal">| ID: ${proceso.numero_proceso_colegio || '-' }</span>
                     </div>
                     <div class="text-muted small">
                         <i class="bi bi-person-check-fill me-1 text-success"></i> 
@@ -127,10 +128,15 @@ function dibujarListaProcesos(data) {
                                 class="btn btn-sm btn-primary d-flex align-items-center px-3 shadow-sm">
                             <i class="bi bi-cloud-arrow-down-fill me-1"></i> DESCARGAR
                         </button>
+                        <button onclick="editarProceso(${proceso.id})" 
+                                class="btn btn-sm btn-outline-warning px-3" title="Editar Proceso">
+                                  <i class="bi bi-pencil-square"></i>
+                        </button>
                         <button onclick="verDetalleProceso(${proceso.id})" 
                                 class="btn btn-sm btn-outline-secondary px-3">
                             <i class="bi bi-eye"></i>
                         </button>
+
                     </div>
                 </div>
             </div>

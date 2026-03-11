@@ -1,90 +1,114 @@
-(function cargarCalendarioAnios() {
-    const contenedor = document.getElementById('gridAnios');
-    const inputOculto = document.getElementById('vigenciaProceso');
-    const textoBoton = document.getElementById('anioSeleccionadoTexto');
-    if (!contenedor) return;
+function cargarAniosModal() {
+    const contenedor = document.getElementById('gridAniosModal');
+    const inputOculto = document.getElementById('modalVigenciaInput');
+    const textoBoton = document.getElementById('anioTextoModal');
+    
+     console.log("cargarAniosModal se ejecutó. Valor detectado en el input:", inputOculto ? inputOculto.value : "NO EXISTE EL INPUT");
+    if (!contenedor || !inputOculto) return;
 
-    const anioActual = new Date().getFullYear();
-    const inicio = 1900; 
-    const fin = 3000;
+    contenedor.innerHTML = '';
+    
+    // BLINDAJE: Forzamos la lectura del valor actual. 
+    // Si viene de la DB como número, parseInt lo asegura.
+    let valorActual = inputOculto.value.trim();
+    const anioSeleccionado = parseInt(valorActual) || 2026;
 
-    contenedor.innerHTML = ''; 
-    contenedor.style.maxHeight = "250px"; 
-    contenedor.style.overflowY = "auto";  
+    // Sincronizamos el texto del botón de inmediato para que no se vea vacío o viejo
+    if (textoBoton) textoBoton.innerText = anioSeleccionado;
+
+    // RANGO INTELIGENTE
+    let anioInicio = Math.min(2020, anioSeleccionado - 5);
+    let anioFin = Math.max(2035, anioSeleccionado + 5);
+
     contenedor.style.display = "grid";
-    contenedor.style.gridTemplateColumns = "repeat(4, 1fr)"; 
+    contenedor.style.gridTemplateColumns = "repeat(4, 1fr)";
     contenedor.style.gap = "5px";
-    contenedor.className = "p-2";
+    contenedor.style.maxHeight = "200px"; 
+    contenedor.style.overflowY = "auto";
+    contenedor.style.padding = "10px";
 
-    for (let i = inicio; i <= fin; i++) {
+    for (let i = anioInicio; i <= anioFin; i++) {
         const boton = document.createElement('button');
         boton.type = 'button';
         boton.innerText = i;
-        boton.id = `anio-${i}`; 
-        boton.className = 'btn btn-sm btn-outline-primary fw-bold';
+        boton.id = `btn-modal-anio-${i}`;
         
-        if (i === anioActual) {
-            boton.classList.replace('btn-outline-primary', 'btn-primary');
-            boton.classList.add('text-white');
-            inputOculto.value = i;
-            textoBoton.innerText = i;
-        }
-
+        // Comparación estricta de números
+        const esSeleccionado = (i === anioSeleccionado);
+        boton.className = 'btn btn-sm ' + (esSeleccionado ? 'btn-primary text-white fw-bold shadow-sm' : 'btn-outline-primary');
+        
         boton.onclick = function() {
             contenedor.querySelectorAll('button').forEach(b => {
-                b.className = 'btn btn-sm btn-outline-primary fw-bold';
+                b.className = 'btn btn-sm btn-outline-primary';
             });
-            this.className = 'btn btn-sm btn-primary text-white fw-bold';
+            this.className = 'btn btn-sm btn-primary text-white fw-bold shadow-sm';
+            
+            // Guardamos el valor y actualizamos la interfaz
             inputOculto.value = i;
-            textoBoton.innerText = i;
+            if(textoBoton) textoBoton.innerText = i;
         };
+
         contenedor.appendChild(boton);
     }
 
-    const dropdownBtn = document.getElementById('btnDesplegarAnios');
-    if(dropdownBtn) {
-        dropdownBtn.addEventListener('shown.bs.dropdown', () => {
-            const btnActivo = document.getElementById(`anio-${inputOculto.value}`);
-            if (btnActivo) btnActivo.scrollIntoView({ block: 'center', behavior: 'smooth' });
-        });
-    }
-})();
+    // Scroll mejorado: Usamos un delay pequeño para asegurar que el DOM esté listo
+    setTimeout(() => {
+        const btnActivo = document.getElementById(`btn-modal-anio-${anioSeleccionado}`);
+        if (btnActivo) {
+            btnActivo.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+    }, 100);
+}
 
 // --- FUNCIONES GLOBALES (FUERA DE TODO BLOQUE) ---
 
 function abrirGeneradorDocs() {
-    const selector = document.getElementById('vigenciaProceso');
-    if (!selector) return;
+    // --- NUEVO: Ya no dependemos del selector del perfil ---
+    const anioPredeterminado = 2026; 
 
+    // 1. Limpiamos el ID oculto (Esencial para que sea un proceso NUEVO y no una edición)
+    const inputIdOculto = document.getElementById('proceso_id_hidden');
+    if (inputIdOculto) inputIdOculto.value = ""; 
+
+    // 2. Resetear Textos y Colores del Modal a modo "NUEVO"
+    const titulo = document.getElementById('tituloModalExpediente');
+    const iconoTitulo = document.getElementById('iconoModalExpediente');
+    const textoBtn = document.getElementById('textoBtnExpediente');
+    const btnAccion = document.getElementById('btnAccionExpediente');
+
+    if (titulo) titulo.innerText = "Generar Nuevo Expediente";
+    if (iconoTitulo) iconoTitulo.className = "bi bi-file-earmark-plus me-2 text-primary";
+    if (textoBtn) textoBtn.innerText = "Generar Expediente";
+    if (btnAccion) btnAccion.className = "btn btn-success px-4";
+
+    // 3. Resetear el Formulario y la Tabla de Ítems
+    const formulario = document.getElementById('formExpedienteCompleto');
+    if (formulario) {
+        formulario.reset();
+        const cuerpoTabla = document.getElementById('cuerpoTablaItems');
+        if (cuerpoTabla) cuerpoTabla.innerHTML = '';
+        if (typeof agregarFilaItem === "function") agregarFilaItem();
+    }
+
+    // 4. Configurar la VIGENCIA predeterminada en el Modal
+    const inputVigenciaModal = document.getElementById('modalVigenciaInput');
+    const textoVigenciaModal = document.getElementById('anioTextoModal');
+    
+    if (inputVigenciaModal) inputVigenciaModal.value = anioPredeterminado;
+    if (textoVigenciaModal) textoVigenciaModal.innerText = anioPredeterminado;
+
+    // 5. Mostrar el Modal
     const modalElement = document.getElementById('modalGeneradorDocs');
     if (modalElement) {
-        // Actualizar vigencia en el input oculto del formulario antes de abrir
-        document.getElementById('modalVigenciaInput').value = selector.value;
-        new bootstrap.Modal(modalElement).show();
+        const myModal = new bootstrap.Modal(modalElement);
+        myModal.show();
+
+        // 6. LANZAR LA CARGA DE AÑOS (con el scroll al 2026)
+        setTimeout(() => {
+            cargarAniosModal(); // Esta es la función que configuramos antes
+        }, 300);
     }
 }
-
-function agregarFilaItem() {
-    const tbody = document.getElementById('cuerpoTablaItems');
-    if (!tbody) return;
-
-    const nuevaFila = document.createElement('tr');
-    nuevaFila.innerHTML = `
-        <td><input type="number" name="cant[]" class="form-control form-control-sm text-center" value="1" onchange="recalcularFila(this)"></td>
-        <td><input type="text" name="cod_clasificador[]" class="form-control form-control-sm" placeholder="Código..."></td>
-        <td><input type="text" name="desc[]" class="form-control form-control-sm" placeholder="Descripción..."></td>
-        <td><input type="number" name="v_unit[]" class="form-control form-control-sm text-end" value="0" onchange="recalcularFila(this)"></td>
-        <td><input type="number" name="v_total[]" class="form-control form-control-sm text-end bg-light" readonly value="0"></td>
-        <td class="text-center">
-            <button type="button" class="btn btn-link text-danger p-0" onclick="this.closest('tr').remove(); actualizarGranTotal();">
-                <i class="bi bi-x-circle-fill"></i>
-            </button>
-        </td>
-    `;
-    tbody.appendChild(nuevaFila);
-    actualizarGranTotal();
-}
-
 function recalcularFila(input) {
     const fila = input.closest('tr');
     const cant = parseFloat(fila.querySelector('[name="cant[]"]').value) || 0;
@@ -137,52 +161,79 @@ async function procesarExpediente() {
     if (!formulario) return;
 
     // 1. Obtener Colegio ID
-    let colegioId = document.getElementById('colegio_id_input')?.value; 
-    if (!colegioId) {
-        const pathSegments = window.location.pathname.split('/').filter(s => s !== "");
-        colegioId = pathSegments[pathSegments.length - 1];
+    const colegioId = obtenerColegioId();
+
+    // 2. Recolectar datos con LIMPIEZA DE NULOS
+    const formData = new FormData(formulario);
+    const datosParaEnviar = {};
+
+    for (let [key, value] of formData.entries()) {
+        // Si el valor está vacío, enviamos null en lugar de ""
+        // Esto evita que el backend falle al intentar procesar fechas o IDs vacíos
+        if (value === "" || value === undefined) {
+            datosParaEnviar[key] = null;
+        } else {
+            datosParaEnviar[key] = value;
+        }
     }
 
-    // 2. Recolectar datos básicos del formulario
-    const formData = new FormData(formulario);
-    const datosParaEnviar = Object.fromEntries(formData.entries());
+    // --- CORRECCIONES ESTRUCTURALES ---
+
+    // A. Vigencia como número
+    const inputVigencia = document.getElementById('modalVigenciaInput');
+    datosParaEnviar.vigencia = inputVigencia ? parseInt(inputVigencia.value) : 2026;
+
+    // B. Asegurar proveedor_id (Clave para la base de datos)
+    if (datosParaEnviar.prov_principal) {
+        datosParaEnviar.proveedor_id = datosParaEnviar.prov_principal;
+    }
+
+    // C. ID de edición (Aseguramos que sea número o null real)
+    const idEdicion = document.getElementById('proceso_id_hidden')?.value;
+    datosParaEnviar.proceso_id = (idEdicion && idEdicion !== "") ? parseInt(idEdicion) : null;
 
     // 3. Recolectar la tabla de Ítems
     const items = [];
     document.querySelectorAll('#cuerpoTablaItems tr').forEach(fila => {
         const descInput = fila.querySelector('[name="desc[]"]');
+        
         if (descInput && descInput.value.trim() !== "") {
+            const cant = parseFloat(fila.querySelector('[name="cant[]"]').value) || 0;
+            const vUnit = parseFloat(fila.querySelector('[name="v_unit[]"]').value) || 0;
+            const vTotal = parseFloat(fila.querySelector('[name="v_total[]"]').value) || 0;
+
             items.push({
-                cantidad: fila.querySelector('[name="cant[]"]').value,
-                codigo_clasificador: fila.querySelector('[name="cod_clasificador[]"]').value, 
-                descripcion: descInput.value,
-                v_unitario: fila.querySelector('[name="v_unit[]"]').value,
-                v_total: fila.querySelector('[name="v_total[]"]').value
+                cantidad: cant,
+                codigo_clasificador: fila.querySelector('[name="cod_clasificador[]"]').value || null, 
+                descripcion: descInput.value.trim(),
+                v_unitario: vUnit,
+                v_total: vTotal
             });
         }
     });
 
     datosParaEnviar.items = items;
 
-    // 4. Validaciones básicas
+    // 4. Validaciones mínimas
     if (!datosParaEnviar.proveedor_id) {
-        Swal.fire('Atención', 'Debes seleccionar un proveedor', 'warning');
+        Swal.fire('Atención', 'Debes seleccionar el proveedor principal', 'warning');
         return;
     }
 
     if (items.length === 0) {
-        Swal.fire('Atención', 'Debe agregar al menos un ítem a la tabla', 'warning');
+        Swal.fire('Atención', 'Debe agregar al menos un ítem con descripción', 'warning');
         return;
     }
 
-    // 5. --- EL CAMBIO ESTÁ AQUÍ ---
-    // En lugar de enviar los datos de una vez, llamamos a la función 
-    // que está en tu archivo nuevo (exportar_documentos.js)
-    // Ella se encargará de preguntar: ¿Word o PDF? y luego enviar todo.
-    
-    abrirOpcionesDescarga(datosParaEnviar, colegioId);
-}
+    // 5. Envío según el caso
+    console.log("Datos finales a enviar:", datosParaEnviar); 
 
+    if (datosParaEnviar.proceso_id) {
+        actualizarProcesoExistente(datosParaEnviar);
+    } else {
+        abrirOpcionesDescarga(datosParaEnviar, colegioId);
+    }
+}
 /**
  * LÓGICA PARA EL GENERADOR DE EXPEDIENTES CONTRACTUALES
  */
@@ -306,3 +357,82 @@ document.querySelector('[name="plazo_txt"]').addEventListener('input', actualiza
 });
 
 
+function obtenerColegioId() {
+    let colegioId = document.getElementById('colegio_id_input')?.value; 
+    if (!colegioId) {
+        const pathSegments = window.location.pathname.split('/').filter(s => s !== "");
+        // Usamos pathSegments que es la variable real
+        colegioId = pathSegments[pathSegments.length - 1]; 
+    }
+    return colegioId;
+}
+
+async function actualizarProcesoExistente(datos) {
+    try {
+        const idDelColegio = obtenerColegioId(); 
+        
+        Swal.fire({
+            title: 'Actualizando...',
+            text: 'Guardando los cambios en el servidor',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        const response = await fetch(`/procesos/guardar_proceso/${idDelColegio}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos)
+        });
+
+        // Verificamos si la respuesta fue exitosa (no es 500, 404, etc)
+        if (!response.ok) {
+            const errorTexto = await response.text();
+            throw new Error(`Error en el servidor (${response.status})`);
+        }
+
+        const result = await response.json();
+
+        // CAMBIO IMPORTANTE: Validamos 'status' en lugar de 'success'
+        if (result.status === 'success' || result.success) {
+            
+            // --- CIERRE SEGURO DEL MODAL ---
+            const modalElement = document.getElementById('modalGeneradorDocs');
+            let modalBS = bootstrap.Modal.getInstance(modalElement);
+            
+            if (modalBS) {
+                modalBS.hide();
+            } else {
+                modalElement.style.display = 'none';
+                document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.paddingRight = '0px';
+            }
+
+            await Swal.fire({
+                icon: 'success',
+                title: '¡Proceso Actualizado!',
+                text: 'Los cambios se han guardado correctamente.',
+                timer: 1500,
+                showConfirmButton: false
+            });
+
+            // Reabrir historial o recargar
+            if (typeof window.abrirHistorial === "function") {
+                window.abrirHistorial(idDelColegio); 
+            } else {
+                location.reload(); 
+            }
+        } else {
+            // Si el servidor respondió pero con un error lógico
+            throw new Error(result.message || "Error desconocido al actualizar");
+        }
+
+    } catch (error) {
+        console.error("Error detallado:", error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de Actualización',
+            text: error.message
+        });
+    }
+}

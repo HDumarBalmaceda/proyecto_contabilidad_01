@@ -39,89 +39,92 @@ function abrirOpcionesDescarga(datosParaEnviar, colegioId) {
 }
 
 async function ejecutarEnvioFinal(datos, colegioId, opciones) {
+    // 1. Mostrar carga inmediatamente
     Swal.fire({
         title: 'Generando Documentos...',
         text: 'Estamos preparando tus archivos. Por favor, no cierres esta ventana.',
         allowOutsideClick: false,
-        didOpen: () => { Swal.showLoading(); }
+        didOpen: () => { 
+            Swal.showLoading(); 
+        }
     });
 
     try {
-        // 1. Guardamos los datos en el controlador de PROCESOS
         const response = await fetch(`/procesos/guardar_proceso/${colegioId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datos)
         });
 
+        // 2. Si hay error 500, intentar leer el mensaje del servidor
+        if (!response.ok) {
+            const errorMsg = await response.text();
+            console.error("Error del servidor:", errorMsg);
+            throw new Error(`Error en el servidor (${response.status})`);
+        }
+
         const resultado = await response.json();
 
-        if (resultado.status === 'success') {
+        if (resultado.status === 'success' || resultado.success) {
+            // Soporte para diferentes nombres de ID que envíe el backend
+            const idReal = resultado.proceso_id || resultado.id; 
             
-            // --- LÓGICA DE DESCARGA SEGÚN EL MODO ---
-            
-       if (resultado.status === 'success') {
-            
-            // Función mejorada para descargar con nombre correcto
+            // Cerrar el modal principal si está abierto (para que no estorbe al terminar)
+            const modalElement = document.getElementById('modalGeneradorDocs');
+            const modalBS = bootstrap.Modal.getInstance(modalElement);
+            if (modalBS) modalBS.hide();
+
             const descargarArchivo = (url, nombreSugerido) => {
                 const link = document.createElement('a');
                 link.href = url;
-                // El atributo download es la clave para el nombre
                 link.setAttribute('download', nombreSugerido);
-                link.setAttribute('target', '_blank'); // Ayuda a evitar bloqueos de seguridad
+                link.setAttribute('target', '_blank'); // Seguridad extra para navegadores
                 document.body.appendChild(link);
                 link.click();
-                document.body.removeChild(link);
+                link.remove();
             };
 
+            // 3. Lógica de descarga según el modo seleccionado
             if (opciones.modo === 'zip') {
-                // Nombre para el ZIP
-                const nombreZip = `PAQUETE_EXPEDIENTE_${resultado.proceso_id}.zip`;
-                const urlZip = `/reportes/descargar_zip/${resultado.proceso_id}?formato=${opciones.formato}`;
-                descargarArchivo(urlZip, nombreZip);
-
+                descargarArchivo(`/reportes/descargar_zip/${idReal}?formato=${opciones.formato}`, `EXPEDIENTE_${idReal}.zip`);
             } else {
+                // Descarga secuencial de plantillas individuales
                 try {
                     const respPlantillas = await fetch('/reportes/obtener_lista_plantillas');
                     const plantillas = await respPlantillas.json();
-
-                    plantillas.forEach((nombreArchivo, index) => {
+                    
+                    plantillas.forEach((nombre, i) => {
                         setTimeout(() => {
-                            const urlIndiv = `/reportes/descargar_individual/${resultado.proceso_id}/${nombreArchivo}?formato=${opciones.formato}`;
-                            // Aquí no enviamos nombreSugerido porque el controlador de Python 
-                            // ya lo genera con el conteo (01, 02...) en el send_file
-                            descargarArchivo(urlIndiv, ""); 
-                        }, index * 1000);
+                            descargarArchivo(`/reportes/descargar_individual/${idReal}/${nombre}?formato=${opciones.formato}`, "");
+                        }, i * 900); // Un pequeño retraso evita que el navegador bloquee descargas múltiples
                     });
                 } catch (err) {
-                    console.error("Error al obtener plantillas:", err);
+                    console.error("No se pudo obtener la lista de plantillas:", err);
                 }
             }
-            }
 
-            // 2. Cambiamos la alerta a modo "Listo"
+            // Alerta de éxito final
             Swal.fire({
                 icon: 'success',
-                title: '¡Proceso Iniciado!',
-                html: `
-                    <div class="text-center">
-                        <p>Los archivos se están procesando y enviando.</p>
-                        <p class="text-muted small">Si seleccionaste "Independientemente", los archivos bajarán uno tras otro.</p>
-                        <hr>
-                        <button type="button" class="btn btn-primary" onclick="location.reload()">
-                            Finalizar 
-                        </button>
-                    </div>
-                `,
-                showConfirmButton: false,
+                title: '¡Proceso Completado!',
+                text: 'Los archivos se están descargando. Revisa tu carpeta de descargas.',
+                confirmButtonText: 'Entendido',
                 allowOutsideClick: false
+            }).then(() => {
+                // Recargamos para limpiar todo o redirigimos al historial
+                location.reload(); 
             });
 
         } else {
-            Swal.fire('Error', resultado.message, 'error');
+            // Error lógico devuelto por Flask (ej: falta un dato en la DB)
+            Swal.fire('Error de Guardado', resultado.message || "No se pudo procesar el expediente", 'error');
         }
     } catch (error) {
-        console.error("Error:", error);
-        Swal.fire('Error', 'No se pudo conectar con el servidor', 'error');
+        console.error("Error Crítico:", error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de Conexión',
+            text: 'Hubo un problema al conectar con el servidor: ' + error.message
+        });
     }
 }

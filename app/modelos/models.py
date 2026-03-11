@@ -94,6 +94,7 @@ class ProcesoContractual(db.Model):
     cod_presupuestal = db.Column(db.String(100))
     plazo_txt = db.Column(db.String(200))
     rubro_nombre = db.Column(db.String(200))
+    numero_proceso_colegio = db.Column(db.Integer)
     
     # Fechas
     f_elaboracion = db.Column(db.Date)
