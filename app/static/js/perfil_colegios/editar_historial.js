@@ -1,4 +1,5 @@
 async function editarProceso(id) {
+    // 1. CERRAR EL HISTORIAL ANTES DE EMPEZAR
     const modalHistorialElement = document.getElementById('modalHistorial');
     let bsHistorial = bootstrap.Modal.getInstance(modalHistorialElement);
     if (bsHistorial) bsHistorial.hide();
@@ -11,17 +12,23 @@ async function editarProceso(id) {
         const modalEditorElement = document.getElementById('modalGeneradorDocs');
         const formulario = document.getElementById('formExpedienteCompleto');
         
-        // --- A) LIMPIEZA INICIAL (IMPORTANTE: Antes de llenar datos) ---
+        // --- A) LIMPIEZA Y APARIENCIA DEL BOTÓN (Fusionado) ---
         if (formulario) formulario.reset(); 
         const cuerpoTabla = document.getElementById('cuerpoTablaItems');
         if (cuerpoTabla) cuerpoTabla.innerHTML = ''; 
 
-        // --- B) CAMBIAR APARIENCIA ---
+        // Título y colores del botón para modo EDICIÓN
         const titulo = document.getElementById('tituloModalExpediente');
-        if (titulo) titulo.innerText = `Editando Proceso #${p.numero_proceso_colegio || p.id}`;
+        const btnAccion = document.getElementById('btnAccionExpediente');
+        const textoBtn = document.getElementById('textoBtnExpediente');
+        const iconoBtn = document.getElementById('iconoBtnExpediente');
 
-        // --- C) SINCRONIZACIÓN DE VIGENCIA (AÑOS) ---
-        console.log("Datos recibidos del servidor (p):", p);
+        if (titulo) titulo.innerText = `Editando Proceso #${p.numero_proceso_colegio || p.id}`;
+        if (btnAccion) btnAccion.className = "btn btn-warning px-4 text-dark fw-bold"; // Amarillo
+        if (textoBtn) textoBtn.innerText = "Actualizar Expediente";
+        if (iconoBtn) iconoBtn.className = "bi bi-arrow-clockwise me-2";
+
+        // --- B) SINCRONIZACIÓN DE VIGENCIA (AÑOS) ---
         const vigenciaDB = p.vigencia || 2026;
         const inputOcultoVigencia = document.getElementById('modalVigenciaInput');
         const textoBotonAnio = document.getElementById('anioTextoModal');
@@ -29,7 +36,7 @@ async function editarProceso(id) {
         if (inputOcultoVigencia) inputOcultoVigencia.value = vigenciaDB;
         if (textoBotonAnio) textoBotonAnio.innerText = vigenciaDB;
 
-        // --- D) LLENAR FORMULARIO ---
+        // --- C) LLENAR FORMULARIO ---
         document.getElementById('proceso_id_hidden').value = p.id;
         document.getElementById('prov_principal').value = p.proveedor_id || "";
         document.getElementById('prov_2').value = p.proveedor2_id || "";
@@ -49,7 +56,7 @@ async function editarProceso(id) {
             if (el) el.value = p[f] ? p[f] : "";
         });
 
-        // --- E) TABLA DE ÍTEMS ---
+        // --- D) TABLA DE ÍTEMS ---
         if (p.items && p.items.length > 0) {
             p.items.forEach(item => {
                 if (typeof agregarFilaConDatos === "function") agregarFilaConDatos(item); 
@@ -58,52 +65,34 @@ async function editarProceso(id) {
             if (typeof agregarFilaItem === "function") agregarFilaItem(); 
         }
 
-        // --- F) MOSTRAR MODAL Y DISPARAR AÑOS (REFORZADO) ---
-        let modalEditorFinal = bootstrap.Modal.getInstance(modalEditorElement);
-        if (!modalEditorFinal) {
-            modalEditorFinal = new bootstrap.Modal(modalEditorElement);
-        }
-
-        // 1. Intento inmediato: Si el modal ya estaba en el DOM, esto lo rellena
+        // --- E) MOSTRAR MODAL Y REFORZAR AÑOS ---
+        let modalEditorFinal = bootstrap.Modal.getOrCreateInstance(modalEditorElement);
+        
+        // Disparo inmediato de años
         if (typeof cargarAniosModal === "function") {
             cargarAniosModal();
         }
         
         modalEditorFinal.show();
 
-        // 2. Intento al abrirse: Cuando Bootstrap termina de mostrarlo
+        // Refuerzo cuando el modal termine de abrirse
         modalEditorElement.addEventListener('shown.bs.modal', function () {
-            console.log("Modal visible, refrescando años...");
-            if (typeof cargarAniosModal === "function") {
-                cargarAniosModal(); 
-            }
+            if (typeof cargarAniosModal === "function") cargarAniosModal(); 
         }, { once: true });
 
-        // 3. Intento de seguridad: Por si las animaciones de los dos modales chocaron
-        setTimeout(() => {
+        // --- F) EVENTO AL CERRAR (Volver al historial) ---
+        modalEditorElement.addEventListener('hidden.bs.modal', function() {
             const grid = document.getElementById('gridAniosModal');
-            if (grid && grid.innerHTML === '') {
-                console.log("Seguridad: El grid estaba vacío, reintentando carga...");
-                cargarAniosModal();
-            }
-        }, 600);
-
-        // --- G) EVENTO AL CERRAR ---
-        const alCerrarModal = function () {
-            const grid = document.getElementById('gridAniosModal');
-            if (grid) grid.innerHTML = ''; // Limpiamos para el siguiente
-
-            const mHistElement = document.getElementById('modalHistorial');
-            if (mHistElement) {
-                // Pequeño delay para evitar conflicto de backdrops de Bootstrap
+            if (grid) grid.innerHTML = ''; 
+            
+            // Volver a abrir el historial
+            if (modalHistorialElement) {
                 setTimeout(() => {
-                    const mHist = new bootstrap.Modal(mHistElement);
+                    const mHist = bootstrap.Modal.getOrCreateInstance(modalHistorialElement);
                     mHist.show();
                 }, 300);
             }
-        };
-
-        modalEditorElement.addEventListener('hidden.bs.modal', alCerrarModal, { once: true });
+        }, { once: true });
 
         if (typeof actualizarGranTotal === "function") actualizarGranTotal();
 
@@ -131,92 +120,4 @@ function agregarFilaConDatos(item) {
     tbody.appendChild(tr);
 }
 
-// funcion para editar un proceso
-async function editarProceso(id) {
-    // --- 1. CERRAR EL HISTORIAL ANTES DE EMPEZAR ---
-    const modalHistorialElement = document.getElementById('modalHistorial');
-    const bsHistorial = bootstrap.Modal.getInstance(modalHistorialElement);
-    if (bsHistorial) bsHistorial.hide();
-
-    try {
-        const response = await fetch(`/procesos/obtener_proceso/${id}`);
-        if (!response.ok) throw new Error("No se pudo obtener el proceso");
-        const p = await response.json();
-
-        // --- 2. PREPARAR EL MODAL DE EDICIÓN ---
-        // Título e Icono
-        const titulo = document.getElementById('tituloModalExpediente');
-        const iconoTitulo = document.getElementById('iconoModalExpediente');
-        if (titulo) titulo.innerText = `Editando Proceso #${p.numero_proceso_colegio || p.id}`;
-        if (iconoTitulo) iconoTitulo.className = "bi bi-pencil-square me-2 text-warning";
-
-        // --- >>> AQUÍ EL CAMBIO VISUAL DEL BOTÓN <<< ---
-        const btnAccion = document.getElementById('btnAccionExpediente');
-        const textoBtn = document.getElementById('textoBtnExpediente');
-        const iconoBtn = document.getElementById('iconoBtnExpediente');
-
-        if (btnAccion) {
-            btnAccion.className = "btn btn-warning px-4 text-dark fw-bold"; // Cambia a amarillo
-        }
-        if (textoBtn) {
-            textoBtn.innerText = "Actualizar Expediente"; // Cambia el texto
-        }
-        if (iconoBtn) {
-            iconoBtn.className = "bi bi-arrow-clockwise me-2"; // Cambia el icono a uno de "refrescar"
-        }
-        // ------------------------------------------------
-
-        // Manejo del ID oculto
-        let inputId = document.getElementById('proceso_id_hidden');
-        if (inputId) {
-            inputId.value = p.id;
-        }
-
-        // Llenado de campos básicos
-        document.getElementById('prov_principal').value = p.proveedor_id;
-        document.getElementById('prov_2').value = p.proveedor2_id || "";
-        document.getElementById('prov_3').value = p.proveedor3_id || "";
-        document.getElementsByName('valor_propuesta2')[0].value = p.valor_propuesta2 || 0;
-        document.getElementsByName('valor_propuesta3')[0].value = p.valor_propuesta3 || 0;
-        document.getElementById('rubro_nombre').value = p.rubro_nombre || "";
-        document.getElementsByName('tipo_contrato')[0].value = p.tipo_contrato;
-        document.getElementsByName('cdp_numero')[0].value = p.cdp_numero || "";
-        document.getElementById('cod_presupuestal').value = p.cod_presupuestal || "";
-        document.getElementsByName('objeto_desc')[0].value = p.objeto_desc || "";
-
-        // Fechas
-        const fechas = ['f_elaboracion', 'f_publicacion', 'f_recepcion', 'f_cierre', 'f_verificacion', 'f_firma', 'f_recibido'];
-        fechas.forEach(f => {
-            const el = document.getElementById(f);
-            if (el) el.value = p[f] ? p[f] : "";
-        });
-        document.getElementById('plazo_txt').value = p.plazo_txt || "";
-
-        // Tabla de ítems
-        const cuerpoTabla = document.getElementById('cuerpoTablaItems');
-        cuerpoTabla.innerHTML = ''; 
-        if (p.items && p.items.length > 0) {
-            p.items.forEach(item => agregarFilaConDatos(item));
-        } else {
-            if (typeof agregarFilaItem === "function") agregarFilaItem(); 
-        }
-
-        if (typeof actualizarGranTotal === "function") actualizarGranTotal(); 
-
-        // --- 3. MOSTRAR EDITOR Y CONFIGURAR REGRESO AL HISTORIAL ---
-        const modalEditorElement = document.getElementById('modalGeneradorDocs');
-        const modalEditor = new bootstrap.Modal(modalEditorElement);
-        
-        modalEditorElement.addEventListener('hidden.bs.modal', function () {
-            if (bsHistorial) bsHistorial.show();
-        }, { once: true });
-
-        modalEditor.show();
-
-    } catch (error) {
-        console.error("Error al cargar proceso:", error);
-        alert("No se pudieron cargar los datos.");
-        if (bsHistorial) bsHistorial.show();
-    }
-}
 

@@ -436,3 +436,20 @@ async function actualizarProcesoExistente(datos) {
         });
     }
 }
+
+// --- VIGILANTE DE APERTURA DE MODAL ---
+// Este código se ejecuta CADA VEZ que el modal termina de abrirse
+const miModal = document.getElementById('modalGeneradorDocumentos');
+
+if (miModal) {
+    miModal.addEventListener('shown.bs.modal', function () {
+        console.log("🚀 El modal se abrió completamente. Ejecutando cargarAniosModal...");
+        
+        // Aquí llamamos a la función que dibuja los cuadritos azules
+        if (typeof cargarAniosModal === "function") {
+            cargarAniosModal(); 
+        } else {
+            console.error("❌ Error: La función cargarAniosModal no está definida en este archivo.");
+        }
+    });
+}
