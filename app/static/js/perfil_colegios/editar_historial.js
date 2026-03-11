@@ -12,23 +12,22 @@ async function editarProceso(id) {
         const modalEditorElement = document.getElementById('modalGeneradorDocs');
         const formulario = document.getElementById('formExpedienteCompleto');
         
-        // --- A) LIMPIEZA Y APARIENCIA DEL BOTÓN (Fusionado) ---
+        // --- A) LIMPIEZA Y APARIENCIA DEL BOTÓN ---
         if (formulario) formulario.reset(); 
         const cuerpoTabla = document.getElementById('cuerpoTablaItems');
         if (cuerpoTabla) cuerpoTabla.innerHTML = ''; 
 
-        // Título y colores del botón para modo EDICIÓN
         const titulo = document.getElementById('tituloModalExpediente');
         const btnAccion = document.getElementById('btnAccionExpediente');
         const textoBtn = document.getElementById('textoBtnExpediente');
         const iconoBtn = document.getElementById('iconoBtnExpediente');
 
         if (titulo) titulo.innerText = `Editando Proceso #${p.numero_proceso_colegio || p.id}`;
-        if (btnAccion) btnAccion.className = "btn btn-warning px-4 text-dark fw-bold"; // Amarillo
+        if (btnAccion) btnAccion.className = "btn btn-warning px-4 text-dark fw-bold"; 
         if (textoBtn) textoBtn.innerText = "Actualizar Expediente";
         if (iconoBtn) iconoBtn.className = "bi bi-arrow-clockwise me-2";
 
-        // --- B) SINCRONIZACIÓN DE VIGENCIA (AÑOS) ---
+        // --- B) SINCRONIZACIÓN DE VIGENCIA ---
         const vigenciaDB = p.vigencia || 2026;
         const inputOcultoVigencia = document.getElementById('modalVigenciaInput');
         const textoBotonAnio = document.getElementById('anioTextoModal');
@@ -67,30 +66,32 @@ async function editarProceso(id) {
 
         // --- E) MOSTRAR MODAL Y REFORZAR AÑOS ---
         let modalEditorFinal = bootstrap.Modal.getOrCreateInstance(modalEditorElement);
-        
-        // Disparo inmediato de años
-        if (typeof cargarAniosModal === "function") {
-            cargarAniosModal();
-        }
+        if (typeof cargarAniosModal === "function") cargarAniosModal();
         
         modalEditorFinal.show();
 
-        // Refuerzo cuando el modal termine de abrirse
         modalEditorElement.addEventListener('shown.bs.modal', function () {
             if (typeof cargarAniosModal === "function") cargarAniosModal(); 
         }, { once: true });
 
-        // --- F) EVENTO AL CERRAR (Volver al historial) ---
+        // --- F) EVENTO AL CERRAR CON LIMPIEZA ANTIGRÍS ---
         modalEditorElement.addEventListener('hidden.bs.modal', function() {
+            // 1. Limpieza de datos
             const grid = document.getElementById('gridAniosModal');
             if (grid) grid.innerHTML = ''; 
             
-            // Volver a abrir el historial
+            // 2. ELIMINAR FANTASMAS GRISES (Backdrops)
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+
+            // 3. Volver al historial con tiempo suficiente
             if (modalHistorialElement) {
                 setTimeout(() => {
                     const mHist = bootstrap.Modal.getOrCreateInstance(modalHistorialElement);
                     mHist.show();
-                }, 300);
+                }, 400); // 400ms es el tiempo ideal para que no choquen
             }
         }, { once: true });
 
