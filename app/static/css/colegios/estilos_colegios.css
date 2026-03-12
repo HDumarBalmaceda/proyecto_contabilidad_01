@@ -1,18 +1,20 @@
 
 /* Ajuste para el Navbar */
 
-/* Ajuste para el Navbar */
 .navbar-perfil {
-    background: linear-gradient(90deg, #0d6efd 0%, #0a58ca 100%);
+    background-color: #1e3a5f !important; /* El azul del login */
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1); /* Una línea sutil abajo */
 }
 
-.navbar-brand {
-    letter-spacing: 0.5px;
+/* Para que los textos resalten bien */
+.navbar-perfil .navbar-brand, 
+.navbar-perfil .nav-link {
+    color: #ffffff !important;
+    font-weight: 500;
 }
 
-/* ===== Barra superior ===== */
-.custom-navbar {
-  background-color: #4da6ff; /* Azul claro */
+.navbar-perfil .nav-link:hover {
+    color: #aed6f1 !important; /* Un azul clarito al pasar el mouse */
 }
 
 /* ===== Input de búsqueda ===== */

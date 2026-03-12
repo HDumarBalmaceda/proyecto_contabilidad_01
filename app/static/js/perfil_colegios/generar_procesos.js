@@ -330,11 +330,15 @@ document.querySelector('[name="plazo_txt"]').addEventListener('input', actualiza
         const nuevaFila = document.createElement('tr');
         nuevaFila.innerHTML = `
             <td><input type="number" name="cant[]" class="form-control form-control-sm text-center" value="1" onchange="recalcularFila(this)"></td>
-            <td><input type="text" name="cod_clasificador[]" class="form-control form-control-sm"></td>
-            <td><input type="text" name="desc[]" class="form-control form-control-sm"></td>
-            <td><input type="number" name="v_unit[]" class="form-control form-control-sm text-end" value="0" onchange="recalcularFila(this)"></td>
-            <td><input type="number" name="v_total[]" class="form-control form-control-sm text-end bg-light" readonly value="0"></td>
-            <td class="text-center"><button type="button" class="btn btn-link btn-sm text-danger" onclick="this.closest('tr').remove(); recalcularTotalGeneral();"><i class="bi bi-trash"></i></button></td>
+        <td><input type="text" name="cod_clasificador[]" class="form-control form-control-sm" placeholder="Código..."></td>
+        <td><input type="text" name="desc[]" class="form-control form-control-sm" placeholder="Descripción..."></td>
+        <td><input type="number" name="v_unit[]" class="form-control form-control-sm text-end" value="0" onchange="recalcularFila(this)"></td>
+        <td><input type="number" name="v_total[]" class="form-control form-control-sm text-end bg-light" readonly value="0"></td>
+        <td class="text-center">
+            <button type="button" class="btn btn-link text-danger p-0" onclick="this.closest('tr').remove(); actualizarGranTotal();">
+                <i class="bi bi-x-circle-fill"></i>
+            </button>
+        </td>
         `;
         tbody.appendChild(nuevaFila);
     };

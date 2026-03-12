@@ -1,4 +1,16 @@
 /* Ajuste para el Navbar */
 .navbar-proveedor {
-    background: linear-gradient(90deg, #0d6efd 0%, #0a58ca 100%);
+    background-color: #1e3a5f !important; /* El azul del login */
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1); /* Una línea sutil abajo */
+}
+
+/* Para que los textos resalten bien */
+.navbar-proveedor .navbar-brand, 
+.navbar-proveedor .nav-link {
+    color: #ffffff !important;
+    font-weight: 500;
+}
+
+.navbar-proveedor .nav-link:hover {
+    color: #aed6f1 !important; /* Un azul clarito al pasar el mouse */
 }

@@ -1,11 +1,34 @@
 from app import db
 from datetime import datetime
+from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # 1. TABLA INTERMEDIA
 colegio_proveedor = db.Table('colegio_proveedor',
     db.Column('colegio_id', db.Integer, db.ForeignKey('colegios.id'), primary_key=True),
     db.Column('proveedor_id', db.Integer, db.ForeignKey('proveedores.id'), primary_key=True)
 )
+
+# -------------------------
+# NUEVO: Modelo de Usuarios
+# -------------------------
+class Usuario(db.Model, UserMixin):
+    __tablename__ = 'usuarios'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
+    
+    # 'admin' (Tú) o 'contador' (Tus clientes)
+    rol = db.Column(db.String(20), default='contador', nullable=False)
+    
+    # Relación: Un usuario puede tener muchos colegios asignados
+    colegios = db.relationship('Colegio', backref='contador', lazy=True)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 # -------------------------
 # Modelo: Proveedor
@@ -42,6 +65,8 @@ class Proveedor(db.Model):
 class Colegio(db.Model):
     __tablename__ = 'colegios'
     id = db.Column(db.Integer, primary_key=True)
+    # --- NUEVA COLUMNA: Relaciona el colegio con un contador ---
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     nombre = db.Column(db.String(200), nullable=False)
     nit = db.Column(db.String(50), unique=True)
     direccion = db.Column(db.Text)

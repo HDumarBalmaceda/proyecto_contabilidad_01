@@ -2,10 +2,12 @@ from flask import Blueprint, request, jsonify
 from app import db
 from app.modelos.models import ProcesoContractual, ItemProceso
 from datetime import datetime
+from flask_login import login_required, current_user
 
 procesos_bp = Blueprint('procesos', __name__)
 
 @procesos_bp.route('/guardar_proceso/<int:colegio_id>', methods=['POST'])
+@login_required
 def guardar_proceso(colegio_id):
     try:
         data = request.get_json()
@@ -40,21 +42,27 @@ def guardar_proceso(colegio_id):
 
         # 2. Buscar o Crear Proceso
         if proceso_id: 
-                         # problema de error 500 server 
+            # Si el proceso ya existe, lo cargamos para editarlo
             proceso = ProcesoContractual.query.get_or_404(proceso_id)
+            # Borramos los ítems anteriores para insertar los nuevos sin duplicar
             ItemProceso.query.filter_by(proceso_id=proceso.id).delete()
         else:
-            ultimo = ProcesoContractual.query.filter_by(colegio_id=colegio_id)\
-                .order_by(ProcesoContractual.numero_proceso_colegio.desc()).first()
+            # --- LÓGICA DE CONSECUTIVO AUTOMÁTICO ---
+            from sqlalchemy import func
             
-            # BLINDAJE AQUÍ: Si ultimo existe pero su numero es None, usamos 0
-            ultimo_numero = 0
-            if ultimo and ultimo.numero_proceso_colegio is not None:
-                ultimo_numero = ultimo.numero_proceso_colegio
+            # Buscamos directamente el número máximo existente para este colegio
+            max_numero = db.session.query(func.max(ProcesoContractual.numero_proceso_colegio))\
+                .filter(ProcesoContractual.colegio_id == colegio_id).scalar()
             
-            nuevo_consecutivo = ultimo_numero + 1
+            # Si es el primer proceso del colegio (None), empezamos en 1.
+            # Si ya hay procesos, le sumamos 1 al número más alto.
+            nuevo_consecutivo = (max_numero or 0) + 1
             
-            proceso = ProcesoContractual(colegio_id=colegio_id, numero_proceso_colegio=nuevo_consecutivo)
+            # Creamos el nuevo registro con su número único por colegio
+            proceso = ProcesoContractual(
+                colegio_id=colegio_id, 
+                numero_proceso_colegio=nuevo_consecutivo
+            )
             db.session.add(proceso)
 
         # 3. Mapeo Blindado de Campos
@@ -106,6 +114,7 @@ def guardar_proceso(colegio_id):
         return jsonify({"success": False, "message": str(e)}), 500
 
 @procesos_bp.route('/obtener_proceso/<int:id>')
+@login_required
 def obtener_proceso(id):
     p = ProcesoContractual.query.get_or_404(id)
     

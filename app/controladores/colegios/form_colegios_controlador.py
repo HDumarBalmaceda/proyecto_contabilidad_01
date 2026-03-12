@@ -3,19 +3,26 @@ from flask import Blueprint, request, render_template, url_for, flash, redirect,
 from app import db
 from app.modelos.models import Colegio, Proveedor
 from sqlalchemy.exc import IntegrityError
+from flask_login import login_required, current_user
 
 # Crear blueprint para colegios
 colegios_bp = Blueprint('colegios', __name__, url_prefix='/colegios')
 
 # 1. RUTA PARA MOSTRAR LA PÁGINA PRINCIPAL
 @colegios_bp.route('/')
+@login_required
 def mostrar_colegios():
     colegios = Colegio.query.all()
     return render_template('colegios/colegios.html', colegios=colegios)
 
 # 2. RUTA PARA CREAR COLEGIO
 @colegios_bp.route('/crear', methods=['POST'])
+@login_required
+
 def crear_colegio():
+    # EL BLOQUEO: Si no es admin, no pasa de aquí
+    if current_user.rol != 'admin':
+        return jsonify({"status": "error", "message": "Acceso denegado"}), 403
     try:
         nombre = request.form.get('nombre')
         nit = request.form.get('nit')
@@ -60,6 +67,7 @@ def crear_colegio():
 
 # 3. RUTA PARA EL DETALLE
 @colegios_bp.route('/<int:id>')
+@login_required
 def detalle_colegio(id):
     colegio = Colegio.query.get_or_404(id)
     ids_vinculados = [p.id for p in colegio.proveedores]
@@ -74,6 +82,7 @@ def detalle_colegio(id):
 
 # 4. RUTA PARA EDITAR
 @colegios_bp.route('/editar/<int:id>', methods=['POST'])
+@login_required
 def editar_colegio(id):
     try:
         colegio = Colegio.query.get_or_404(id)
@@ -108,6 +117,7 @@ def editar_colegio(id):
 
 # 5. RUTA PARA ELIMINAR
 @colegios_bp.route('/eliminar/<int:id>', methods=['DELETE'])
+@login_required
 def eliminar_colegio(id):
     try:
         colegio = Colegio.query.get_or_404(id)
@@ -120,6 +130,7 @@ def eliminar_colegio(id):
 
 # 6. VINCULAR PROVEEDOR
 @colegios_bp.route('/vincular-proveedor/<int:colegio_id>', methods=['POST'])
+@login_required
 def vincular_proveedor(colegio_id):
     try:
         colegio = Colegio.query.get_or_404(colegio_id)
@@ -138,6 +149,7 @@ def vincular_proveedor(colegio_id):
 
 # 7. DESVINCULAR PROVEEDOR
 @colegios_bp.route('/desvincular-proveedor/<int:colegio_id>/<int:proveedor_id>', methods=['POST'])
+@login_required
 def desvincular_proveedor(colegio_id, proveedor_id):
     try:
         colegio = Colegio.query.get_or_404(colegio_id)

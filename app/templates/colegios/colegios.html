@@ -7,19 +7,36 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/perfil_colegios/perfil_colegio.css') }}">
+
     <link rel="stylesheet" href="{{ url_for('static', filename='css/colegios/estilos_colegios.css') }}">
 </head>
 
 <body class="bg-light">
     
     <nav class="navbar navbar-expand-lg navbar-dark navbar-perfil mb-4 shadow-sm">
-        <div class="container">
-            <a class="navbar-brand d-flex align-items-center fw-bold fs-3" href="{{ url_for('colegios.mostrar_colegios') }}">
-                <i class="bi bi-bank2 me-2"></i> GESTION DOCUMENTAL PROCESOS SECOP II
-            </a>
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center fw-bold fs-3" href="{{ url_for('colegios.mostrar_colegios') }}">
+            <i class="bi bi-bank2 me-2"></i> GESTION DOCUMENTAL PROCESOS SECOP II
+        </a>
+
+        {% if current_user.is_authenticated %}
+        <div class="d-flex align-items-center ms-auto">
+            <div class="me-3">
+                <span class="badge bg-light text-dark p-2 shadow-sm">
+                    <i class="bi bi-person-fill me-1"></i> 
+                    {{ current_user.username | capitalize }}
+                </span>
+            </div>
+
+            <div class="navbar-nav">
+                <a class="nav-link text-danger fw-bold d-flex align-items-center" href="{{ url_for('auth.logout') }}">
+                    <i class="bi bi-box-arrow-right me-1"></i> Cerrar Sesión
+                </a>
+            </div>
         </div>
-    </nav>
+        {% endif %}
+    </div>
+</nav>
 
     <div class="container mt-3">
         {% with messages = get_flashed_messages(with_categories=true) %}

@@ -2,12 +2,14 @@ from flask import Blueprint, jsonify
 from app.modelos.models import ProcesoContractual, Proveedor, ItemProceso
 from app import db
 import traceback
+from flask_login import login_required, current_user
 
 # 1. DEFINICIÓN DEL BLUEPRINT
 historial_bp = Blueprint('historial', __name__)
 
 # 2. RUTA DEL HISTORIAL
 @historial_bp.route('/historial_json/<int:colegio_id>')
+@login_required
 def historial_json(colegio_id):
     try:
         procesos = ProcesoContractual.query.filter_by(colegio_id=colegio_id)\

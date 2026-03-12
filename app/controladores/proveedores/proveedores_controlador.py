@@ -1,11 +1,13 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from app import db
 from app.modelos.models import Proveedor 
-from sqlalchemy.exc import IntegrityError # <--- ¡ESTA LÍNEA ES VITAL!
+from sqlalchemy.exc import IntegrityError #
+from flask_login import login_required, current_user
 
 proveedores_bp = Blueprint('proveedores', __name__, url_prefix='/proveedores')
 
 @proveedores_bp.route('/', methods=['GET', 'POST'])
+@login_required
 def listar_proveedores():
     if request.method == 'POST':
         try:
@@ -45,6 +47,7 @@ def listar_proveedores():
     return render_template('proveedores/proveedores.html', proveedores=proveedores)
 
 @proveedores_bp.route('/editar/<int:id>', methods=['POST'])
+@login_required
 def editar_proveedor(id):
     proveedor = Proveedor.query.get_or_404(id)
     try:
@@ -79,6 +82,7 @@ def editar_proveedor(id):
     return redirect(url_for('proveedores.listar_proveedores'))
 
 @proveedores_bp.route('/eliminar/<int:id>')
+@login_required
 def eliminar_proveedor(id):
     proveedor = Proveedor.query.get_or_404(id)
     try:
@@ -95,6 +99,7 @@ def eliminar_proveedor(id):
 
 # OBTIENE LOS DATOS DE LOS PROVEEDORES 
 @proveedores_bp.route('/obtener/<int:id>')
+@login_required
 def obtener_proveedor_json(id):
     p = Proveedor.query.get_or_404(id)
     return {

@@ -11,6 +11,7 @@ import locale
 from datetime import datetime
 import shutil
 from flask import after_this_request
+from flask_login import login_required, current_user
 
 pdf_lock = threading.Lock()
 reportes_bp = Blueprint('reportes', __name__)
@@ -190,6 +191,7 @@ def obtener_contexto_proceso(proceso_id):
     return contexto, colegio, nombre_col_limpio
 
 @reportes_bp.route('/obtener_lista_plantillas')
+@login_required
 def lista_plantillas():
     ruta = os.path.join(current_app.root_path, 'static', 'plantillas')
     
@@ -232,6 +234,7 @@ def convertir_a_pdf_libreoffice(ruta_docx, carpeta_destino):
         return False
 
 @reportes_bp.route('/descargar_zip/<int:proceso_id>')
+@login_required
 def descargar_zip(proceso_id):
     formato = request.args.get('formato', 'word').lower()
     archivos_creados = [] 
@@ -315,6 +318,7 @@ def descargar_zip(proceso_id):
         return f"Error: {str(e)}", 500
 
 @reportes_bp.route('/descargar_individual/<int:proceso_id>/<string:nombre_p>')
+@login_required
 def descargar_individual(proceso_id, nombre_p):
     formato = request.args.get('formato', 'word').lower()
     archivos_a_borrar = [] # Lista para rastrear Word, PDF e imágenes temporales

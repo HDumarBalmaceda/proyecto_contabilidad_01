@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="fw-bold" style="color: #1e3a5f;">
+                <i class="bi bi-shield-lock-fill me-2"></i>Panel de Control Administrativo
+            </h1>
+            <p class="text-white-50">Bienvenido, {{ current_user.username | capitalize }}. Gestiona el acceso y la visibilidad global del sistema.</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <div class="badge bg-danger p-2 fs-6 shadow-sm">
+                <i class="bi bi-person-badge me-1"></i> Modo Administrador
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm" style="background: #2c4c7a; color: white;">
+                <div class="card-body d-flex flex-column">
+                    <div class="mb-3 d-flex justify-content-between align-items-start">
+                        <i class="bi bi-person-plus-fill fs-1 text-info"></i>
+                        <span class="badge bg-info text-dark">Módulo de Personal</span>
+                    </div>
+                    <h4>Usuarios </h4>
+                    <p class="small opacity-75">Administra quién tiene acceso y qué colegios puede visualizar cada contador.</p>
+                    
+                    <div class="mt-auto d-grid gap-2">
+                        <a href="{{ url_for('usuarios.lista_usuarios') }}" class="btn btn-outline-light btn-sm fw-bold">
+                            <i class="bi bi-list-check me-1"></i> Gestionar Usuarios
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm" style="background: #2c4c7a; color: white;">
+                <div class="card-body d-flex flex-column">
+                    <div class="mb-3 d-flex justify-content-between align-items-start">
+                        <i class="bi bi-building-fill fs-1 text-success"></i>
+                        <span class="badge bg-success">Maestro</span>
+                    </div>
+                    <h4>Colegios</h4>
+                    <p class="small opacity-75">Crea nuevas instituciones y revisa el listado completo de entidades vinculadas.</p>
+                    
+                    <div class="mt-auto d-grid gap-2">
+                        <a href="{{ url_for('colegios.mostrar_colegios') }}" class="btn btn-outline-light btn-sm fw-bold">
+                            <i class="bi bi-list-check me-1"></i> Gestionar Colegios
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm" style="background: #2c4c7a; color: white;">
+                <div class="card-body d-flex flex-column">
+                    <div class="mb-3 d-flex justify-content-between align-items-start">
+                        <i class="bi bi-truck fs-1 text-warning"></i>
+                        <span class="badge bg-warning text-dark">Global</span>
+                    </div>
+                    <h4>Proveedores</h4>
+                    <p class="small opacity-75">Base de datos unificada de proveedores habilitados para procesos SECOP II.</p>
+                    <a href="{{ url_for('proveedores.listar_proveedores') }}" class="btn btn-outline-light btn-sm fw-bold">
+                        <i class="bi bi-list-check me-"></i> Gestionar proveedores
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm" style="background: #2c4c7a; color: white;">
+                <div class="card-body d-flex flex-column">
+                    <div class="mb-3 d-flex justify-content-between align-items-start">
+                        <i class="bi bi-link-45deg fs-1 text-danger"></i>
+                        <span class="badge bg-danger">Seguridad</span>
+                    </div>
+                    <h4>Enlace de Cuentas</h4>
+                    <p class="small opacity-75">Asigna colegios específicos a los contadores para controlar qué información pueden ver.</p>
+                    
+                    <div class="mt-auto d-grid gap-2">
+                        <a href="{{ url_for('usuarios.lista_usuarios') }}" class="btn btn-outline-light btn-sm fw-bold">
+                            <i class="bi bi-diagram-3-fill me-1"></i> Configurar Enlaces
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+{% include "administrador/_modal_crear_usuario.html" %}
+
+
+{% endblock %}
