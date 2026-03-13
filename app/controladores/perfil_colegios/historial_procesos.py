@@ -1,5 +1,5 @@
-from flask import Blueprint, jsonify
-from app.modelos.models import ProcesoContractual, Proveedor, ItemProceso
+from flask import Blueprint, jsonify, abort
+from app.modelos.models import ProcesoContractual, Proveedor, ItemProceso, Colegio # <<< Importamos Colegio
 from app import db
 import traceback
 from flask_login import login_required, current_user
@@ -7,11 +7,19 @@ from flask_login import login_required, current_user
 # 1. DEFINICIÓN DEL BLUEPRINT
 historial_bp = Blueprint('historial', __name__)
 
-# 2. RUTA DEL HISTORIAL
+# 2. RUTA DEL HISTORIAL BLINDADA
 @historial_bp.route('/historial_json/<int:colegio_id>')
 @login_required
 def historial_json(colegio_id):
     try:
+        # --- NUEVO: BLOQUEO DE SEGURIDAD ---
+        colegio = Colegio.query.get_or_404(colegio_id)
+        
+        # Si no es admin y el colegio no le pertenece, lanzamos un 403 (Prohibido)
+        if current_user.rol != 'admin' and colegio.usuario_id != current_user.id:
+            return jsonify({"error": "Acceso no autorizado a este historial"}), 403
+        # -----------------------------------
+
         procesos = ProcesoContractual.query.filter_by(colegio_id=colegio_id)\
                    .order_by(ProcesoContractual.id.desc()).all()
         
@@ -27,19 +35,14 @@ def historial_json(colegio_id):
                 # --- LÓGICA INTELIGENTE PARA EL NOMBRE ---
                 razon = prov.razon_social.strip() if prov.razon_social else ""
                 
-                # Paso 1: Intentamos armar el nombre de persona natural por si acaso
                 nombres_persona = [prov.primer_nombre, prov.segundo_nombre, 
                                   prov.primer_apellido, prov.segundo_apellido]
                 nombre_persona_natural = " ".join([part for part in nombres_persona if part]).strip()
 
-                # Paso 2: Decidimos qué mostrar
-                # Si tiene razón social Y no es solo un número, es la prioridad
                 if razon and not razon.isdigit():
                     nombre_final = razon
-                # Si la razón social es un número o está vacía, usamos el nombre de persona
                 elif nombre_persona_natural:
                     nombre_final = nombre_persona_natural
-                # Si no hay nada, el plan de emergencia es usar el documento
                 else:
                     nombre_final = f"CONTRATISTA {documento_final}"
 
@@ -61,6 +64,7 @@ def historial_json(colegio_id):
              })
         
         return jsonify(resultado)
+        
     except Exception as e:
         print("---------- ERROR CRÍTICO EN CONTROLADOR ----------")
         print(traceback.format_exc())

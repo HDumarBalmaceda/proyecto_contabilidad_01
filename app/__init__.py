@@ -57,6 +57,10 @@ def create_app():
         # Le ponemos un prefijo para que las URLs sean limpias: /admin/panel, /admin/usuarios/crear
         app.register_blueprint(usuarios_bp, url_prefix='/admin')
 
+        # 7. RELACIONES Y ENLACES (NUEVO)
+        from app.controladores.relaciones.enlaces import admin_bp 
+        app.register_blueprint(admin_bp)
+
     # --- RUTA RAÍZ INTELIGENTE ---
     @app.route("/")
     def index():

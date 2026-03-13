@@ -17,11 +17,13 @@ class Usuario(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
-    
-    # 'admin' (Tú) o 'contador' (Tus clientes)
     rol = db.Column(db.String(20), default='contador', nullable=False)
+    proveedores = db.relationship('Proveedor', backref='creador_rel', lazy=True)
     
-    # Relación: Un usuario puede tener muchos colegios asignados
+    # NUEVOS CAMPOS
+    email = db.Column(db.String(120), unique=True, nullable=True) # Opcional para admin
+    telefono = db.Column(db.String(20), nullable=True)
+    
     colegios = db.relationship('Colegio', backref='contador', lazy=True)
 
     def set_password(self, password):
@@ -36,8 +38,10 @@ class Usuario(db.Model, UserMixin):
 class Proveedor(db.Model):
     __tablename__ = 'proveedores'
     id = db.Column(db.Integer, primary_key=True)
+    # NUEVA COLUMNA: Para saber qué usuario creó este proveedor
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False, index=True)
     tipo_tercero = db.Column(db.String(50), nullable=False)
-    documento = db.Column(db.String(20), unique=True, nullable=False)
+    documento = db.Column(db.String(20),  nullable=False, index=True)
     dv = db.Column(db.String(1))
     renta = db.Column(db.String(50))
     primer_nombre = db.Column(db.String(100))
@@ -66,9 +70,9 @@ class Colegio(db.Model):
     __tablename__ = 'colegios'
     id = db.Column(db.Integer, primary_key=True)
     # --- NUEVA COLUMNA: Relaciona el colegio con un contador ---
-    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True, index=True)
     nombre = db.Column(db.String(200), nullable=False)
-    nit = db.Column(db.String(50), unique=True)
+    nit = db.Column(db.String(50), unique=True, index=True)
     direccion = db.Column(db.Text)
     telefono = db.Column(db.String(50))
     municipio = db.Column(db.String(100))

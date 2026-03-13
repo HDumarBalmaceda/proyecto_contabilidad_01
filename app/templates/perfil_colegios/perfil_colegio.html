@@ -129,8 +129,8 @@
             </div>
             <div class="card-body p-2">
                 <ul class="list-group list-group-flush" id="listaProveedores" style="max-height: 150px; overflow-y: auto;">
-                    {% if colegio.proveedores %}
-                        {% for prov in colegio.proveedores %}
+                    {% if proveedores_vinculados %}
+                        {% for prov in proveedores_vinculados %}
                             <li class="list-group-item d-flex justify-content-between align-items-center px-2 bg-transparent py-1 border-bottom">
                                 <div class="overflow-hidden me-2">
                                     <div class="fw-bold mb-0 text-truncate small" style="max-width: 150px;">

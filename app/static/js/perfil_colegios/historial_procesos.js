@@ -185,7 +185,7 @@ function opcionesDescargaHistorial(procesoId) {
                 </select>
                 <label class="form-label fw-bold small">2. Seleccione Modo</label>
                 <select id="swal-modo" class="form-select">
-                    <option value="solo">Descargar uno por uno</option>
+                    <option value="solo">Descargar idividualmente</option>
                     <option value="zip">Paquete Completo (ZIP)</option>
                 </select>
             </div>
@@ -207,18 +207,17 @@ function opcionesDescargaHistorial(procesoId) {
     });
 }
 
-// funcion para descargar los procesos antiguo
 async function procesarDescargaEfectiva(procesoId, opciones) {
-    // 1. Alerta de espera
     Swal.fire({
-        title: 'Preparando Expediente...',
-        text: 'Generando documentos con sellos y firmas actuales.',
+        title: 'Generando Documentos...',
+        text: 'Estamos preparando tus archivos del historial. Por favor, no cierres esta ventana.',
         allowOutsideClick: false,
-        didOpen: () => { Swal.showLoading(); }
+        didOpen: () => { 
+            Swal.showLoading(); 
+        }
     });
 
     try {
-        // Función interna para disparar la descarga real
         const descargarArchivo = (url, nombreSugerido) => {
             const link = document.createElement('a');
             link.href = url;
@@ -226,39 +225,50 @@ async function procesarDescargaEfectiva(procesoId, opciones) {
             link.setAttribute('target', '_blank');
             document.body.appendChild(link);
             link.click();
-            document.body.removeChild(link);
+            link.remove();
         };
 
         if (opciones.modo === 'zip') {
-            // Caso A: Descargar todo en un ZIP
+            // --- CASO ZIP ---
             const urlZip = `/reportes/descargar_zip/${procesoId}?formato=${opciones.formato}`;
             descargarArchivo(urlZip, `PAQUETE_EXPEDIENTE_${procesoId}.zip`);
             
-            Swal.fire({
-                icon: 'success',
-                title: '¡Descarga iniciada!',
-                text: 'Tu paquete ZIP se está procesando.',
-                timer: 2000,
-                showConfirmButton: false
-            });
+            // PEQUEÑO TRUCO: Esperamos 1.5 segundos para que el servidor respire y mostramos éxito
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
         } else {
-            // Caso B: Descargar archivos uno por uno (como en tu otro formulario)
+            // --- CASO INDIVIDUAL ---
             const respPlantillas = await fetch('/reportes/obtener_lista_plantillas');
+            if (!respPlantillas.ok) throw new Error("No se pudo obtener la lista de plantillas.");
+            
             const plantillas = await respPlantillas.json();
 
-            plantillas.forEach((nombreArchivo, index) => {
-                setTimeout(() => {
-                    const urlIndiv = `/reportes/descargar_individual/${procesoId}/${nombreArchivo}?formato=${opciones.formato}`;
-                    descargarArchivo(urlIndiv, ""); 
-                    
-                    if (index === plantillas.length - 1) {
-                        Swal.fire('¡Listo!', 'Los archivos se están descargando individualmente.', 'success');
-                    }
-                }, index * 1000); // Retraso de 1 segundo entre archivos
+            await new Promise((resolve) => {
+                plantillas.forEach((nombreArchivo, index) => {
+                    setTimeout(() => {
+                        const urlIndiv = `/reportes/descargar_individual/${procesoId}/${nombreArchivo}?formato=${opciones.formato}`;
+                        descargarArchivo(urlIndiv, ""); 
+                        if (index === plantillas.length - 1) resolve();
+                    }, index * 900);
+                });
             });
         }
+
+        // --- ESTA PARTE AHORA SÍ SE EJECUTARÁ PARA AMBOS ---
+        Swal.fire({
+            icon: 'success',
+            title: '¡Descarga Iniciada!',
+            text: 'Los archivos se están procesando. Revisa tu carpeta de descargas.',
+            confirmButtonText: 'Entendido',
+            allowOutsideClick: false
+        });
+
     } catch (error) {
         console.error("Error al descargar:", error);
-        Swal.fire('Error', 'No se pudo conectar con el servidor de reportes.', 'error');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de Descarga',
+            text: 'Hubo un problema: ' + error.message
+        });
     }
 }

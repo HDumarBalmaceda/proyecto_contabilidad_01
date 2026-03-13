@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from app import db
-from app.modelos.models import ProcesoContractual, ItemProceso
+from app.modelos.models import ProcesoContractual, ItemProceso, Colegio
 from datetime import datetime
 from flask_login import login_required, current_user
 
@@ -10,6 +10,13 @@ procesos_bp = Blueprint('procesos', __name__)
 @login_required
 def guardar_proceso(colegio_id):
     try:
+        # 1. SEGURIDAD: Validar que el colegio le pertenece al usuario actual
+        from app.modelos.models import Colegio # Asegúrate de importar Colegio
+        colegio = Colegio.query.get_or_404(colegio_id)
+        
+        if current_user.rol != 'admin' and colegio.usuario_id != current_user.id:
+            return jsonify({"success": False, "message": "Acceso denegado: No tienes permiso para gestionar procesos en este colegio."}), 403
+
         data = request.get_json()
         if not data:
             return jsonify({"success": False, "message": "No se recibieron datos"}), 400
@@ -30,42 +37,38 @@ def guardar_proceso(colegio_id):
             try: return datetime.strptime(date_str, '%Y-%m-%d').date()
             except: return None
 
-        # 1. Procesar Ítems y Totales
+        # 2. Procesar Ítems y Totales
         items_data = data.get('items', [])
         total_p1 = sum(safe_float(item.get('v_total')) for item in items_data)
         v2 = safe_float(data.get('valor_propuesta2'))
         v3 = safe_float(data.get('valor_propuesta3'))
         
-        # Promedio (solo de valores mayores a 0)
         valores = [v for v in [total_p1, v2, v3] if v > 0]
         promedio_final = sum(valores) / len(valores) if len(valores) >= 2 else 0
 
-        # 2. Buscar o Crear Proceso
+        # 3. Buscar o Crear Proceso con validación cruzada
         if proceso_id: 
-            # Si el proceso ya existe, lo cargamos para editarlo
             proceso = ProcesoContractual.query.get_or_404(proceso_id)
-            # Borramos los ítems anteriores para insertar los nuevos sin duplicar
+            
+            # SEGURIDAD EXTRA: Validar que el proceso realmente pertenece al colegio de la ruta
+            if proceso.colegio_id != colegio_id:
+                return jsonify({"success": False, "message": "Error de integridad: El proceso no corresponde al colegio indicado."}), 400
+                
             ItemProceso.query.filter_by(proceso_id=proceso.id).delete()
         else:
-            # --- LÓGICA DE CONSECUTIVO AUTOMÁTICO ---
             from sqlalchemy import func
-            
-            # Buscamos directamente el número máximo existente para este colegio
             max_numero = db.session.query(func.max(ProcesoContractual.numero_proceso_colegio))\
                 .filter(ProcesoContractual.colegio_id == colegio_id).scalar()
             
-            # Si es el primer proceso del colegio (None), empezamos en 1.
-            # Si ya hay procesos, le sumamos 1 al número más alto.
             nuevo_consecutivo = (max_numero or 0) + 1
             
-            # Creamos el nuevo registro con su número único por colegio
             proceso = ProcesoContractual(
                 colegio_id=colegio_id, 
                 numero_proceso_colegio=nuevo_consecutivo
             )
             db.session.add(proceso)
 
-        # 3. Mapeo Blindado de Campos
+        # 4. Mapeo de Campos
         proceso.proveedor_id = safe_int(data.get('proveedor_id'))
         proceso.proveedor2_id = safe_int(data.get('proveedor2_id'))
         proceso.proveedor3_id = safe_int(data.get('proveedor3_id'))
@@ -92,7 +95,7 @@ def guardar_proceso(colegio_id):
 
         db.session.flush()
 
-        # 4. Insertar Ítems
+        # 5. Insertar Ítems
         for item in items_data:
             desc = item.get('descripcion', '').strip()
             if desc:
@@ -110,15 +113,27 @@ def guardar_proceso(colegio_id):
 
     except Exception as e:
         db.session.rollback()
-        print(f"CRITICAL ERROR: {str(e)}") # Esto sale en tu terminal de VS Code
-        return jsonify({"success": False, "message": str(e)}), 500
+        print(f"CRITICAL ERROR: {str(e)}") 
+        return jsonify({"success": False, "message": "Ocurrió un error al procesar la solicitud."}), 500
 
 @procesos_bp.route('/obtener_proceso/<int:id>')
 @login_required
 def obtener_proceso(id):
+    # 1. Buscamos el proceso
     p = ProcesoContractual.query.get_or_404(id)
     
-    # Preparamos los items para el JS
+    # 2. SEGURIDAD: Validar propiedad a través del colegio
+    from app.modelos.models import Colegio 
+    colegio = Colegio.query.get(p.colegio_id)
+
+    # Si no es admin y el usuario_id del colegio no coincide con el logueado...
+    if current_user.rol != 'admin' and (not colegio or colegio.usuario_id != current_user.id):
+        return jsonify({
+            "error": "Acceso denegado", 
+            "message": "No tienes permiso para ver los datos de este proceso."
+        }), 403
+
+    # 3. Si pasa la seguridad, preparamos los datos
     items = [{
         'id': item.id,
         'descripcion': item.descripcion,
@@ -129,13 +144,10 @@ def obtener_proceso(id):
     } for item in p.detalles_items]
 
     return jsonify({
-        # Identificadores y Números
         'id': p.id,
         'numero_proceso_colegio': p.numero_proceso_colegio,
         'colegio_id': p.colegio_id,
         'vigencia': p.vigencia,
-        
-        # Proveedores y Propuestas
         'proveedor_id': p.proveedor_id,
         'proveedor2_id': p.proveedor2_id,
         'proveedor3_id': p.proveedor3_id,
@@ -143,18 +155,12 @@ def obtener_proceso(id):
         'valor_propuesta3': p.valor_propuesta3,
         'gran_total': p.gran_total,
         'promedio_propuestas': p.promedio_propuestas,
-
-        # Información del Contrato
         'tipo_contrato': p.tipo_contrato,
         'objeto_desc': p.objeto_desc,
         'plazo_txt': p.plazo_txt,
-        
-        # Información Presupuestal
         'cdp_numero': p.cdp_numero,
         'rubro_nombre': p.rubro_nombre,
         'cod_presupuestal': p.cod_presupuestal,
-
-        # Cronograma de Fechas (Formateadas para el input date)
         'f_elaboracion': p.f_elaboracion.isoformat() if p.f_elaboracion else '',
         'f_publicacion': p.f_publicacion.isoformat() if p.f_publicacion else '',
         'f_recepcion': p.f_recepcion.isoformat() if p.f_recepcion else '',
@@ -162,7 +168,5 @@ def obtener_proceso(id):
         'f_verificacion': p.f_verificacion.isoformat() if p.f_verificacion else '',
         'f_firma': p.f_firma.isoformat() if p.f_firma else '',
         'f_recibido': p.f_recibido.isoformat() if p.f_recibido else '',
-        
-        # Lista de Items
         'items': items
     })

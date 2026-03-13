@@ -47,7 +47,7 @@
                     <p class="small opacity-75">Crea nuevas instituciones y revisa el listado completo de entidades vinculadas.</p>
                     
                     <div class="mt-auto d-grid gap-2">
-                        <a href="{{ url_for('colegios.mostrar_colegios') }}" class="btn btn-outline-light btn-sm fw-bold">
+                        <a href="{{ url_for('colegios.vista_admin_colegios') }}" class="btn btn-outline-light btn-sm fw-bold">
                             <i class="bi bi-list-check me-1"></i> Gestionar Colegios
                         </a>
                     </div>
@@ -82,7 +82,7 @@
                     <p class="small opacity-75">Asigna colegios específicos a los contadores para controlar qué información pueden ver.</p>
                     
                     <div class="mt-auto d-grid gap-2">
-                        <a href="{{ url_for('usuarios.lista_usuarios') }}" class="btn btn-outline-light btn-sm fw-bold">
+                        <a href="{{ url_for('admin.panel_enlace') }}" class="btn btn-outline-light btn-sm fw-bold">
                             <i class="bi bi-diagram-3-fill me-1"></i> Configurar Enlaces
                         </a>
                     </div>
@@ -93,7 +93,7 @@
     </div>
 </div>
 
-{% include "administrador/_modal_crear_usuario.html" %}
+
 
 
 {% endblock %}

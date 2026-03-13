@@ -21,38 +21,50 @@ def panel_admin():
     return render_template('administrador/administrador.html', usuarios=todos_los_usuarios)
 
 # --- RUTA PARA CREAR NUEVOS CONTADORES ---
-@usuarios_bp.route('/usuarios/crear', methods=['GET', 'POST'])
+@usuarios_bp.route('/usuarios/crear', methods=['POST'])
 @login_required
 def crear_usuario():
     if current_user.rol != 'admin':
-        flash('No tienes permisos para crear usuarios.', 'danger')
+        flash('Acceso denegado.', 'danger')
         return redirect(url_for('colegios.mostrar_colegios'))
 
-    if request.method == 'POST':
-        username = request.form.get('username')
-        rol = request.form.get('rol')
+    username = request.form.get('username').strip()
+    rol = request.form.get('rol')
+    email = request.form.get('email').strip()
+    telefono = request.form.get('telefono').strip()
 
-        # 1. Validar si el usuario ya existe
-        if Usuario.query.filter_by(username=username).first():
-            flash('Este nombre de usuario ya existe.', 'warning')
-            # Importante: Redirigimos al panel_admin donde está el modal
-            return redirect(url_for('usuarios.panel_admin'))
+    # 1. Validación de campos vacíos
+    if not username or not rol or not email:
+        flash('El nombre de usuario, el rol y el correo son obligatorios.', 'warning')
+        return redirect(url_for('usuarios.lista_usuarios'))
 
-        # 2. Crear el nuevo usuario
-        nuevo_usuario = Usuario(username=username, rol=rol)
-        
-        # 3. ASIGNAR PASSWORD: Usamos el mismo username como contraseña inicial
-        # Tu método set_password se encarga de encriptarlo automáticamente
+    # 2. Validar duplicados (Username)
+    if Usuario.query.filter_by(username=username).first():
+        flash(f'El nombre de usuario "{username}" ya está registrado.', 'danger')
+        return redirect(url_for('usuarios.lista_usuarios'))
+
+    # 3. Validar duplicados (Email)
+    if Usuario.query.filter_by(email=email).first():
+        flash(f'El correo "{email}" ya está asignado a otro usuario.', 'danger')
+        return redirect(url_for('usuarios.lista_usuarios'))
+
+    try:
+        nuevo_usuario = Usuario(
+            username=username, 
+            rol=rol, 
+            email=email, 
+            telefono=telefono
+        )
         nuevo_usuario.set_password(username) 
-
         db.session.add(nuevo_usuario)
         db.session.commit()
+        flash(f'Usuario {username} creado exitosamente.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Ocurrió un error inesperado al guardar en la base de datos.', 'danger')
 
-        flash(f'¡Usuario {username} creado con éxito! La contraseña es su mismo nombre de usuario.', 'success')
-        return redirect(url_for('usuarios.panel_admin'))
+    return redirect(url_for('usuarios.lista_usuarios'))
 
-    # Si por algún motivo se accede vía GET, mandamos al panel
-    return redirect(url_for('usuarios.panel_admin'))
 
 @usuarios_bp.route('/gestion-usuarios')
 @login_required
@@ -65,4 +77,4 @@ def lista_usuarios():
     from app.modelos.models import Usuario
     todos_los_usuarios = Usuario.query.all()
     
-    return render_template('administrador/usuarios.html', usuarios=todos_los_usuarios)
+    return render_template('usuarios_admin/usuarios.html', usuarios=todos_los_usuarios)

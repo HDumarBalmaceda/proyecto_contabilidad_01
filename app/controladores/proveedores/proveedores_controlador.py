@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from app import db
 from app.modelos.models import Proveedor 
-from sqlalchemy.exc import IntegrityError #
+from sqlalchemy.exc import IntegrityError
 from flask_login import login_required, current_user
 
 proveedores_bp = Blueprint('proveedores', __name__, url_prefix='/proveedores')
@@ -12,6 +12,7 @@ def listar_proveedores():
     if request.method == 'POST':
         try:
             nuevo_proveedor = Proveedor(
+                usuario_id=current_user.id,  # <<< CLAVE: Asignamos el dueño
                 tipo_tercero=request.form.get('tipo_tercero'),
                 documento=request.form.get('documento'),
                 dv=request.form.get('dv'),
@@ -43,13 +44,23 @@ def listar_proveedores():
         
         return redirect(url_for('proveedores.listar_proveedores'))
 
-    proveedores = Proveedor.query.all()
+    # FILTRO DE SEGURIDAD: Los admin ven todo, los contadores solo lo suyo
+    if current_user.rol == 'admin':
+        proveedores = Proveedor.query.all()
+    else:
+        proveedores = Proveedor.query.filter_by(usuario_id=current_user.id).all()
+        
     return render_template('proveedores/proveedores.html', proveedores=proveedores)
 
 @proveedores_bp.route('/editar/<int:id>', methods=['POST'])
 @login_required
 def editar_proveedor(id):
-    proveedor = Proveedor.query.get_or_404(id)
+    # BLINDAJE: Si es admin busca por ID, si no, busca por ID + dueño
+    if current_user.rol == 'admin':
+        proveedor = Proveedor.query.get_or_404(id)
+    else:
+        proveedor = Proveedor.query.filter_by(id=id, usuario_id=current_user.id).first_or_404()
+    
     try:
         proveedor.tipo_tercero = request.form.get('tipo_tercero')
         proveedor.documento = request.form.get('documento')
@@ -74,7 +85,6 @@ def editar_proveedor(id):
     except IntegrityError:
         db.session.rollback()
         flash('Error: El documento ingresado ya pertenece a otro proveedor.', 'danger')
-
     except Exception as e:
         db.session.rollback()
         flash(f'Error al actualizar: {str(e)}', 'danger')
@@ -84,24 +94,29 @@ def editar_proveedor(id):
 @proveedores_bp.route('/eliminar/<int:id>')
 @login_required
 def eliminar_proveedor(id):
-    proveedor = Proveedor.query.get_or_404(id)
+    # seguriada solo el administrador puede borrar todo y el cont solo sus datos
+    if current_user.rol == 'admin':
+        proveedor = Proveedor.query.get_or_404(id)
+    else:
+        proveedor = Proveedor.query.filter_by(id=id, usuario_id=current_user.id).first_or_404()
+    
     try:
         db.session.delete(proveedor)
         db.session.commit()
         flash('Proveedor eliminado correctamente', 'warning')
-
     except Exception as e:
         db.session.rollback()
-        # Aquí el error suele ser por llaves foráneas (si el proveedor tiene facturas, etc.)
         flash('No se puede eliminar: el proveedor tiene registros asociados.', 'danger')
     
     return redirect(url_for('proveedores.listar_proveedores'))
 
-# OBTIENE LOS DATOS DE LOS PROVEEDORES 
 @proveedores_bp.route('/obtener/<int:id>')
 @login_required
 def obtener_proveedor_json(id):
-    p = Proveedor.query.get_or_404(id)
+    if current_user.rol == 'admin':
+        p = Proveedor.query.get_or_404(id)
+    else:
+        p = Proveedor.query.filter_by(id=id, usuario_id=current_user.id).first_or_404()
     return {
         "tipo_tercero": p.tipo_tercero,
         "documento_full": f"{p.documento}-{p.dv}" if p.dv else p.documento,
