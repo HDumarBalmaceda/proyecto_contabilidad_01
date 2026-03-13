@@ -3,10 +3,10 @@ from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# 1. TABLA INTERMEDIA
+# 1. TABLA INTERMEDIA (Corregida)
 colegio_proveedor = db.Table('colegio_proveedor',
-    db.Column('colegio_id', db.Integer, db.ForeignKey('colegios.id'), primary_key=True),
-    db.Column('proveedor_id', db.Integer, db.ForeignKey('proveedores.id'), primary_key=True)
+    db.Column('colegio_id', db.Integer, db.ForeignKey('colegios.id', ondelete='CASCADE'), primary_key=True),
+    db.Column('proveedor_id', db.Integer, db.ForeignKey('proveedores.id', ondelete='CASCADE'), primary_key=True)
 )
 
 # -------------------------
@@ -88,7 +88,9 @@ class Colegio(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
     updated_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now(), onupdate=db.func.now())
 
-    proveedores = db.relationship('Proveedor', secondary=colegio_proveedor, backref='colegios_vinculados')
+    proveedores = db.relationship('Proveedor', 
+                                 secondary=colegio_proveedor, 
+                                 backref=db.backref('colegios_vinculados', lazy='dynamic'))
     procesos = db.relationship('ProcesoContractual', 
                                backref='colegio', 
                                cascade="all, delete-orphan",

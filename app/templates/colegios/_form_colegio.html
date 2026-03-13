@@ -1,94 +1,120 @@
 <div class="modal fade" id="crearColegioModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
+        <div class="modal-content border-0 shadow-lg">
             
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="modalTitle">Nuevo Colegio</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            <div class="modal-header bg-primary text-white py-3">
+                <h5 class="modal-title fw-bold" id="modalTitle">
+                    <i class="bi bi-building-plus-fill me-2"></i>Registrar Nuevo Colegio
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
 
-            <div class="modal-body">
+            <div class="modal-body p-4">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                   {% if messages %}
+                         {% for category, message in messages %}
+                               {% if category != 'success' %} 
+                                       <input type="hidden" id="has-errors" value="true">
+            
+                                            <div class="alert alert-{{ category }} alert-dismissible fade show small py-2" role="alert">
+                                                   <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ message }}
+                                                       <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                           </div>
+                                     {% endif %}
+                               {% endfor %}
+                            {% endif %}
+                   {% endwith %}
+
                 <form id="formCrearColegio" action="{{ url_for('colegios.crear_colegio') }}" method="POST" enctype="multipart/form-data">
-                    
-                    <div class="row mb-2">
-                        <div class="col-md-6">
-                            <label for="nombre" class="form-label small mb-1">Nombre</label>
-                            <input type="text" class="form-control form-control-sm" id="nombre" name="nombre" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="nit" class="form-label small mb-1">NIT</label>
-                            <input type="text" class="form-control form-control-sm" id="nit" name="nit">
-                        </div>
-                    </div>
-
-                    <div class="row mb-2">
-                        <div class="col-md-6">
-                            <label for="direccion" class="form-label small mb-1">Dirección</label>
-                            <input type="text" class="form-control form-control-sm" id="direccion" name="direccion">
-                        </div>
-                        <div class="col-md-6">
-                            <label for="telefono" class="form-label small mb-1">Teléfono</label>
-                            <input type="text" class="form-control form-control-sm" id="telefono" name="telefono">
-                        </div>
-                    </div>
-
-                    <div class="row mb-2">
-                        <div class="col-md-6">
-                            <label for="municipio" class="form-label small mb-1">Municipio</label>
-                            <input type="text" class="form-control form-control-sm" id="municipio" name="municipio">
-                        </div>
-                        <div class="col-md-6">
-                            <label for="rector_nombre" class="form-label small mb-1">Nombre del Rector</label>
-                            <input type="text" class="form-control form-control-sm" id="rector_nombre" name="rector_nombre">
-                        </div>
-                    </div>
-
-                    <div class="row mb-2">
-                        <div class="col-md-6">
-                            <label for="rector_documento" class="form-label small mb-1">Documento del Rector</label>
-                            <input type="text" class="form-control form-control-sm" id="rector_documento" name="rector_documento">
-                        </div>
-                        <div class="col-md-6">
-                            <label for="rector_tipo_documento" class="form-label small mb-1">Tipo de Documento</label>
-                            <select class="form-select form-select-sm" id="rector_tipo_documento" name="rector_tipo_documento" required>
-                                <option value="CC">Cédula de Ciudadanía (CC)</option>
-                                <option value="CE">Cédula de Extranjería (CE)</option>
-                                <option value="TI">Tarjeta de Identidad (TI)</option>
-                                <option value="PAS">Pasaporte (PAS)</option>
-                                <option value="OTRO">Otro</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Logotipo del colegio</label>
-                            <div class="upload-box d-flex flex-column justify-content-center align-items-center text-primary fw-bold fs-5" 
-                                 style="cursor: pointer; border: 2px dashed #ccc; min-height: 150px;"
-                                 onclick="document.getElementById('logo_path').click()">
-                                <span id="logoText">Agregar logo</span>
-                                <img id="previewLogo" src="#" alt="Vista previa" class="img-fluid d-none mt-2" style="max-height: 100px;">
+                    <div class="mb-4">
+                        <h6 class="text-primary fw-bold border-bottom pb-2 mb-3">
+                            <i class="bi bi-info-circle-fill me-1"></i> Información Institucional
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label for="nombre" class="form-label small fw-bold mb-1">Nombre de la Institución</label>
+                                <input type="text" class="form-control form-control-sm" id="nombre" name="nombre" placeholder="Ej: Colegio San José" required>
                             </div>
-                            <input type="file" id="logo_path" name="logo_path" accept="image/*" class="d-none">
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label">Firma del rector</label>
-                            <div class="upload-box d-flex flex-column justify-content-center align-items-center text-success fw-bold fs-5" 
-                                 style="cursor: pointer; border: 2px dashed #ccc; min-height: 150px;"
-                                 onclick="document.getElementById('firma_path').click()">
-                                <span id="firmaText">Agregar firma</span>
-                                <img id="previewFirma" src="#" alt="Vista previa" class="img-fluid d-none mt-2" style="max-height: 100px;">
+                            <div class="col-md-4">
+                                <label for="nit" class="form-label small fw-bold mb-1">NIT</label>
+                                <input type="text" class="form-control form-control-sm" id="nit" name="nit" placeholder="900000000-1">
                             </div>
-                            <input type="file" id="firma_path" name="firma_path" accept="image/*" class="d-none">
+                            <div class="col-md-4">
+                                <label for="municipio" class="form-label small fw-bold mb-1">Municipio</label>
+                                <input type="text" class="form-control form-control-sm" id="municipio" name="municipio" placeholder="Ej: Barranquilla">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="direccion" class="form-label small fw-bold mb-1">Dirección</label>
+                                <input type="text" class="form-control form-control-sm" id="direccion" name="direccion" placeholder="Calle 0 #00-00">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="telefono" class="form-label small fw-bold mb-1">Teléfono</label>
+                                <input type="text" class="form-control form-control-sm" id="telefono" name="telefono" placeholder="Ej: 3001234567">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6 class="text-primary fw-bold border-bottom pb-2 mb-3">
+                            <i class="bi bi-person-badge-fill me-1"></i> Representación Legal (Rector)
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="rector_nombre" class="form-label small fw-bold mb-1">Nombre Completo</label>
+                                <input type="text" class="form-control form-control-sm" id="rector_nombre" name="rector_nombre" placeholder="Nombre del rector">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="rector_tipo_documento" class="form-label small fw-bold mb-1">Tipo Doc.</label>
+                                <select class="form-select form-select-sm" id="rector_tipo_documento" name="rector_tipo_documento" required>
+                                    <option value="CC">Cédula (CC)</option>
+                                    <option value="CE">Extranjería (CE)</option>
+                                    <option value="TI">Tarjeta Identidad (TI)</option>
+                                    <option value="PAS">Pasaporte (PAS)</option>
+                                    <option value="OTRO">Otro</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="rector_documento" class="form-label small fw-bold mb-1">Documento</label>
+                                <input type="text" class="form-control form-control-sm" id="rector_documento" name="rector_documento" placeholder="Número">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <h6 class="text-primary fw-bold border-bottom pb-2 mb-3">
+                            <i class="bi bi-cloud-upload-fill me-1"></i> Archivos y Sellos
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold mb-1">Logotipo Institucional</label>
+                                <div class="upload-box" onclick="document.getElementById('logo_path').click()">
+                                    <i class="bi bi-image text-primary"></i>
+                                    <span id="logoText">Click para subir Logo</span>
+                                    <img id="previewLogo" src="#" alt="Vista previa" class="img-fluid d-none mt-2">
+                                </div>
+                                <input type="file" id="logo_path" name="logo_path" accept="image/*" class="d-none">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold mb-1">Firma Digital del Rector</label>
+                                <div class="upload-box" onclick="document.getElementById('firma_path').click()">
+                                    <i class="bi bi-pen text-success"></i>
+                                    <span id="firmaText">Click para subir Firma</span>
+                                    <img id="previewFirma" src="#" alt="Vista previa" class="img-fluid d-none mt-2">
+                                </div>
+                                <input type="file" id="firma_path" name="firma_path" accept="image/*" class="d-none">
+                            </div>
                         </div>
                     </div>
                 </form>
             </div>
 
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="submit" form="formCrearColegio" class="btn btn-primary">Guardar</button>
+            <div class="modal-footer bg-light border-0">
+                <button type="button" class="btn btn-outline-secondary fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" form="formCrearColegio" class="btn btn-primary px-4 fw-bold">
+                    <i class="bi bi-save2 me-1"></i> Guardar Colegio
+                </button>
             </div>
-
-        </div> </div> </div>
+        </div>
+    </div>
+</div>

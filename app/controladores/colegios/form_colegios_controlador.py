@@ -1,4 +1,5 @@
 import os
+from flask import current_app
 from flask import Blueprint, request, render_template, url_for, flash, redirect, jsonify
 from app import db
 from app.modelos.models import Colegio, Proveedor
@@ -22,14 +23,17 @@ def mostrar_colegios():
     return render_template('colegios/colegios.html', colegios=colegios)
 
 # 2. RUTA PARA CREAR COLEGIO
+
 @colegios_bp.route('/crear', methods=['POST'])
 @login_required
 def crear_colegio():
-    # EL BLOQUEO: Si no es admin, no pasa de aquí
+    # 1. Seguridad
     if current_user.rol != 'admin':
-        return jsonify({"status": "error", "message": "Acceso denegado"}), 403
+        flash("Acceso denegado: No tienes permisos.", "danger")
+        return redirect(url_for('colegios.index')) # O la ruta de tu lista
 
     try:
+        # 2. Captura de datos
         nombre = request.form.get('nombre')
         nit = request.form.get('nit')
         direccion = request.form.get('direccion')
@@ -39,20 +43,24 @@ def crear_colegio():
         rector_documento = request.form.get('rector_documento')
         rector_tipo_documento = request.form.get('rector_tipo_documento')
 
+        # 3. Manejo de archivos
         upload_folder = os.path.join("app", "static", "uploads")
         if not os.path.exists(upload_folder):
             os.makedirs(upload_folder)
 
+        # Logo
         logo_file = request.files.get('logo_path')
         logo_filename = f"logo_{nombre.replace(' ', '_')}.png" if logo_file else None
         if logo_file: 
             logo_file.save(os.path.join(upload_folder, logo_filename))
 
+        # Firma
         firma_file = request.files.get('firma_path')
         firma_filename = f"firma_{nombre.replace(' ', '_')}.png" if firma_file else None
         if firma_file: 
             firma_file.save(os.path.join(upload_folder, firma_filename))
 
+        # 4. Guardar en DB
         nuevo_colegio = Colegio(
             nombre=nombre, nit=nit, direccion=direccion, telefono=telefono,
             municipio=municipio, rector_nombre=rector_nombre,
@@ -62,14 +70,21 @@ def crear_colegio():
 
         db.session.add(nuevo_colegio)
         db.session.commit()
-        return jsonify({"status": "success", "message": "Colegio creado"}), 200
+        
+        # ÉXITO: Redirigimos y mostramos mensaje fuera del modal
+        flash("¡Institución registrada exitosamente!", "success")
+        return redirect(url_for('colegios.vista_admin_colegios'))
 
     except IntegrityError:
         db.session.rollback()
-        return jsonify({"status": "error", "message": "Ya existe un colegio con este NIT o nombre."}), 400
+        # ERROR DE DUPLICADO: Flash y redirect (el JS abrirá el modal)
+        flash("Error: Ya existe un colegio con este NIT o nombre.", "danger")
+        return redirect(url_for('colegios.vista_admin_colegios'))
+        
     except Exception as e:
         db.session.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        flash(f"Error inesperado: {str(e)}", "danger")
+        return redirect(url_for('colegios.vista_admin_colegios'))
 
 @colegios_bp.route('/<int:id>')
 @login_required
@@ -111,6 +126,14 @@ def detalle_colegio(id):
                            proveedores_vinculados=proveedores_vinculados, # <--- LISTA FILTRADA
                            todos_los_proveedores=todos_los_proveedores)
 # 4. RUTA PARA EDITAR
+
+# 1. Definimos las extensiones permitidas fuera de la ruta
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 @colegios_bp.route('/editar/<int:id>', methods=['POST'])
 @login_required
 def editar_colegio(id):
@@ -135,18 +158,43 @@ def editar_colegio(id):
         colegio.rector_tipo_documento = request.form.get('rector_tipo_documento')
 
         upload_folder = os.path.join("app", "static", "uploads")
-        
-        # Procesar Logo si se sube uno nuevo
+        nombre_limpio = "".join(x for x in colegio.nombre if x.isalnum() or x in "._- ").replace(' ', '_')
+
+        # --- PROCESAR LOGO ---
         logo_file = request.files.get('logo_path')
         if logo_file and logo_file.filename != '':
-            logo_filename = f"logo_{colegio.nombre.replace(' ', '_')}.png"
+            # A. Validar extensión
+            if not allowed_file(logo_file.filename):
+                return jsonify({"status": "error", "message": "Formato de logo no permitido"}), 400
+            
+            # B. Borrar logo anterior si existe físicamente
+            if colegio.logo_path:
+                old_path = os.path.join(upload_folder, colegio.logo_path)
+                if os.path.exists(old_path):
+                    os.remove(old_path)
+
+            # C. Guardar nuevo logo
+            ext = logo_file.filename.rsplit('.', 1)[1].lower()
+            logo_filename = f"logo_{colegio.id}_{nombre_limpio}.{ext}"
             logo_file.save(os.path.join(upload_folder, logo_filename))
             colegio.logo_path = logo_filename
 
-        # Procesar Firma si se sube una nueva
+        # --- PROCESAR FIRMA ---
         firma_file = request.files.get('firma_path')
         if firma_file and firma_file.filename != '':
-            firma_filename = f"firma_{colegio.nombre.replace(' ', '_')}.png"
+            # A. Validar extensión
+            if not allowed_file(firma_file.filename):
+                return jsonify({"status": "error", "message": "Formato de firma no permitido"}), 400
+
+            # B. Borrar firma anterior si existe
+            if colegio.firma_path:
+                old_firma_path = os.path.join(upload_folder, colegio.firma_path)
+                if os.path.exists(old_firma_path):
+                    os.remove(old_firma_path)
+
+            # C. Guardar nueva firma
+            ext_f = firma_file.filename.rsplit('.', 1)[1].lower()
+            firma_filename = f"firma_{colegio.id}_{nombre_limpio}.{ext_f}"
             firma_file.save(os.path.join(upload_folder, firma_filename))
             colegio.firma_path = firma_filename
 
@@ -157,11 +205,9 @@ def editar_colegio(id):
         db.session.rollback()
         return jsonify({"status": "error", "message": str(e)}), 500
 
-# 5. RUTA PARA ELIMINAR (Solo Admin)
 @colegios_bp.route('/eliminar/<int:id>', methods=['DELETE'])
 @login_required
 def eliminar_colegio(id):
-    # El bloqueo de seguridad debe estar al mismo nivel que el resto del código
     if current_user.rol != 'admin':
         return jsonify({
             "status": "error", 
@@ -170,13 +216,38 @@ def eliminar_colegio(id):
     
     try:
         colegio = Colegio.query.get_or_404(id)
+        
+        # --- CIRUGÍA DE ARCHIVOS FÍSICOS ---
+        # Definimos la ruta de la carpeta de subidas
+        upload_folder = os.path.join(current_app.root_path, 'static', 'uploads')
+        
+        # Lista de archivos a eliminar
+        archivos_a_borrar = [colegio.logo_path, colegio.firma_path]
+        
+        for archivo in archivos_a_borrar:
+            if archivo:
+                # Construimos la ruta completa
+                ruta_completa = os.path.join(upload_folder, archivo)
+                # Si el archivo existe en el disco, lo borramos
+                if os.path.exists(ruta_completa):
+                    os.remove(ruta_completa)
+
+        # --- ELIMINACIÓN EN BASE DE DATOS ---
+        # Esto disparará el 'cascade delete' que configuramos en los modelos
         db.session.delete(colegio)
         db.session.commit()
-        return jsonify({"status": "success", "message": "Colegio eliminado"}), 200
+        
+        return jsonify({
+            "status": "success", 
+            "message": "Colegio, archivos y procesos eliminados correctamente"
+        }), 200
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return jsonify({
+            "status": "error", 
+            "message": f"Error al eliminar: {str(e)}"
+        }), 500
 
 # 6. VINCULAR PROVEEDOR (CORREGIDA CON DOBLE BLINDAJE)
 @colegios_bp.route('/vincular-proveedor/<int:colegio_id>', methods=['POST'])

@@ -7,8 +7,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/colegios/estilos_colegios.css') }}">
+     <link rel="stylesheet" href="{{ url_for('static', filename='css/colegios/estilos_colegios.css') }}">
 </head>
 
 <body class="bg-light">
@@ -69,9 +68,6 @@
                     <i class="bi bi-truck me-1"></i> Proveedores
                 </a>
 
-                <button class="btn btn-success shadow-sm" data-bs-toggle="modal" data-bs-target="#crearColegioModal">
-                    <i class="bi bi-plus-circle me-1"></i> Nuevo Colegio
-                </button>
             </div>
         </div>
 
@@ -105,17 +101,20 @@
                       
                     <div class="card-footer bg-transparent border-0 pb-3 d-flex justify-content-center gap-2" style="z-index: 2; position: relative;">
                         <button class="btn btn-sm btn-outline-warning rounded-circle btn-editar" 
-                                title="Editar" data-id="{{ colegio.id }}" data-nombre="{{ colegio.nombre }}"
-                                data-nit="{{ colegio.nit }}" data-direccion="{{ colegio.direccion }}"
-                                data-telefono="{{ colegio.telefono }}" data-municipio="{{ colegio.municipio }}"
-                                data-rector_nombre="{{ colegio.rector_nombre }}" data-rector_documento="{{ colegio.rector_documento }}"
-                                data-rector_tipo_documento="{{ colegio.rector_tipo_documento }}">
-                            <i class="bi bi-pencil"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger rounded-circle btn-eliminar" 
-                                title="Eliminar" data-id="{{ colegio.id }}" data-nombre="{{ colegio.nombre }}">
-                            <i class="bi bi-trash"></i>
-                        </button>
+        title="Editar" 
+        data-id="{{ colegio.id }}" 
+        data-nombre="{{ colegio.nombre }}"
+        data-nit="{{ colegio.nit }}" 
+        data-direccion="{{ colegio.direccion }}"
+        data-telefono="{{ colegio.telefono }}" 
+        data-municipio="{{ colegio.municipio }}"
+        data-rector_nombre="{{ colegio.rector_nombre }}" 
+        data-rector_documento="{{ colegio.rector_documento }}"
+        data-rector_tipo_documento="{{ colegio.rector_tipo_documento }}"
+        data-logo="{{ colegio.logo_path }}"
+        data-firma="{{ colegio.firma_path }}">
+    <i class="bi bi-pencil"></i>
+</button>
                     </div>
                 </div>
             </div>
@@ -126,8 +125,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ url_for('static', filename='js/colegios/form_colegios.js') }}"></script>
     <script src="{{ url_for('static', filename='js/colegios/busqueda_colegios.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/colegios/acciones_colegios.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/colegios/editar_colegios.js') }}"></script>
 </body>
 </html>
