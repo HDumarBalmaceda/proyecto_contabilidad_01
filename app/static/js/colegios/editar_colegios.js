@@ -41,97 +41,90 @@ document.addEventListener("DOMContentLoaded", function() {
     const logoInput = document.getElementById("logo_path");
     const firmaInput = document.getElementById("firma_path");
     
-    // Botones del footer del modal
     const btnGuardarNuevo = document.getElementById('btn-guardar-nuevo');
     const btnActualizarEdit = document.getElementById('btn-actualizar-edit');
 
-    // --- A. EVENTOS DE CARGA DE ARCHIVOS ---
     if (logoInput) logoInput.addEventListener("change", function() { mostrarVistaPrevia(this, "previewLogo", "logoText"); });
     if (firmaInput) firmaInput.addEventListener("change", function() { mostrarVistaPrevia(this, "previewFirma", "firmaText"); });
 
-    // --- B. LÓGICA DE EDICIÓN (Delegación de eventos) ---
+    // --- B. LÓGICA DE EDICIÓN ---
     document.addEventListener('click', function(e) {
         const btnEditar = e.target.closest('.btn-editar');
-
         if (btnEditar) {
-            // 1. Configuración Visual del Modal
             if (modalTitle) modalTitle.textContent = "Editar Información del Colegio";
             if (btnGuardarNuevo) btnGuardarNuevo.classList.add('d-none'); 
             if (btnActualizarEdit) btnActualizarEdit.classList.remove('d-none');
             
-            // 2. Definir Ruta de Acción Dinámica
             const id = btnEditar.getAttribute('data-id');
             formColegio.action = `/colegios/editar/${id}`;
 
-            // 3. Llenado Automático de Campos desde Data-Attributes
             const campos = ['nombre', 'nit', 'direccion', 'telefono', 'municipio', 'rector_nombre', 'rector_documento', 'rector_tipo_documento'];
             campos.forEach(c => {
                 const input = formColegio.querySelector(`[name="${c}"]`);
                 if (input) input.value = btnEditar.getAttribute(`data-${c}`) || '';
             });
 
-            // 4. Cargar Imágenes actuales en los contenedores de vista previa
             gestionarImagenPreview(btnEditar.getAttribute('data-logo'), "previewLogo", "logoText");
             gestionarImagenPreview(btnEditar.getAttribute('data-firma'), "previewFirma", "firmaText");
             
-            // 5. Mostrar el Modal (Bootstrap 5)
-            const modalInstance = bootstrap.Modal.getOrCreateInstance(document.getElementById('crearColegioModal'));
-            modalInstance.show();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('crearColegioModal')).show();
         }
     });
 
-   // --- C. ENVÍO MEDIANTE FETCH PARA CAPTURAR EL JSON ---
-if (formColegio) {
-    formColegio.addEventListener("submit", function(e) {
-        // 1. Evitar que el formulario recargue la página
-        e.preventDefault();
+    // --- C. ENVÍO INTELIGENTE ---
+    if (formColegio) {
+        formColegio.addEventListener("submit", function(e) {
+            
+            // FILTRO CRUCIAL:
+            // Si el botón de actualizar está oculto (d-none), significa que estamos CREANDO.
+            // En ese caso, NO ejecutamos e.preventDefault() y dejamos que el navegador
+            // haga el envío tradicional hacia /colegios/crear.
+            if (btnActualizarEdit && btnActualizarEdit.classList.contains('d-none')) {
+                return; // Salimos de la función y permitimos el submit normal
+            }
 
-        // 2. Mostrar alerta de carga
-        Swal.fire({ 
-            title: 'Procesando...', 
-            text: 'Estamos actualizando la información',
-            allowOutsideClick: false,
-            didOpen: () => { Swal.showLoading(); } 
-        });
+            // Si llegamos aquí, es porque SÍ estamos EDITANDO (el botón de actualizar es visible)
+            e.preventDefault();
 
-        // 3. Preparar los datos (incluyendo archivos)
-        const formData = new FormData(this);
+            Swal.fire({ 
+                title: 'Actualizando...', 
+                text: 'Guardando los cambios del colegio',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); } 
+            });
 
-        // 4. Enviar mediante Fetch al "action" que definimos dinámicamente
-        fetch(this.action, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json()) // Convertir la respuesta de Flask a JSON
-        .then(data => {
-            if (data.status === 'success') {
-                // Alerta de éxito
-                Swal.fire({
-                    icon: 'success',
-                    title: '¡Actualizado!',
-                    text: data.message,
-                    confirmButtonText: 'Genial'
-                }).then(() => {
-                    // Recargar la página para ver los cambios
-                    location.reload();
-                });
-            } else {
-                // Alerta de error (por validación o permisos)
+            const formData = new FormData(this);
+
+            fetch(this.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                // Si recibimos un HTML (error 404, 500 o redirección), lanzamos error para el catch
+                if (!response.ok || response.headers.get("content-type").includes("text/html")) {
+                    throw new Error("Respuesta no válida del servidor");
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Actualizado!',
+                        text: data.message
+                    }).then(() => { location.reload(); });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.message });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
                 Swal.fire({
                     icon: 'error',
-                    title: 'Error',
-                    text: data.message
+                    title: 'Error de proceso',
+                    text: 'Asegúrate de estar editando y no creando. Si el problema persiste, contacta al admin.'
                 });
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error de conexión',
-                text: 'No se pudo comunicar con el servidor.'
             });
         });
-    });
-}
+    }
 });
