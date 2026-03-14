@@ -3,69 +3,75 @@
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header text-white" style="background-color: #1e3a5f;">
                 <h5 class="modal-title" id="crearUsuarioModalLabel">
-                    <i class="bi bi-person-plus-fill me-2"></i>Registrar Nuevo Usuario
-                </h5>
+                      <i class="bi bi-person-plus-fill me-2"></i>
+                          <span id="modalTitle">Registrar Nuevo Usuario</span> 
+                    </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
          <div class="modal-body">
     {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          {% if category in ['danger', 'warning'] %} {# Solo errores o advertencias en el modal #}
-          <div class="alert alert-{{ 'danger' if category == 'danger' else 'warning' }} alert-dismissible fade show small py-2" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>
-          {% endif %}
-        {% endfor %}
-      {% endif %}
+        {% if messages %}
+            {% for category, message in messages %}
+                {% if category in ['danger', 'warning'] %}
+                <div class="alert alert-{{ 'danger' if category == 'danger' else 'warning' }} alert-dismissible fade show small py-2" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
     {% endwith %}
     
-    <form action="{{ url_for('usuarios.crear_usuario') }}" method="POST">
-            
-            <form action="{{ url_for('usuarios.crear_usuario') }}" method="POST">
-            
-                    <div class="mb-3">
-                        <label for="username" class="form-label fw-bold" >Nombre de Usuario / Correo</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light"><i class="bi bi-person-circle"></i></span>
-                            <input type="text" id="username" name="username" class="form-control" placeholder="Ej: juan.contador" required>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                           <label class="form-label fw-bold">Nombre Completo</label>
-                           <input type="text" name="nombre" class="form-control" placeholder="Ej: Juan Pérez" required>
-                    </div>
-
-                    <div class="mb-3">
-                         <label class="form-label">Correo Electrónico</label>
-                         <input type="email" name="email" class="form-control" placeholder="ejemplo@correo.com" required>
-                   </div>
-                      <div class="mb-3">
-                            <label class="form-label">Teléfono de Contacto</label>
-                            <input type="text" name="telefono" class="form-control" placeholder="Ej: 300 123 4567" required>
-                     </div>
-
-
-                    <div class="mb-2">
-                        <label for="rol" class="form-label fw-bold">Rol Asignado</label>
-                        <select class="form-select" id="rol" name="rol" required>
-                            <option value="contador" selected>Contador (Acceso limitado)</option>
-                            <option value="admin">Administrador (Acceso total)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="modal-footer bg-light border-0">
-                    <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn text-white px-4 fw-bold" style="background-color: #1e3a5f;">
-                        Guardar Usuario
-                    </button>
-                </div>
-            </form>
+    <form id="usuarioForm" action="{{ url_for('usuarios.crear_usuario') }}" method="POST">
+        
+        <input type="hidden" id="usuario_id" name="usuario_id">
+        
+        <div class="mb-3">
+            <label for="username" class="form-label fw-bold">Nombre de Usuario / Correo</label>
+            <div class="input-group">
+                <span class="input-group-text bg-light"><i class="bi bi-person-circle"></i></span>
+                <input type="text" id="username" name="username" class="form-control" placeholder="Ej: juan.contador" required>
+            </div>
         </div>
+
+        <div class="mb-3">
+            <label for="nombre" class="form-label fw-bold">Nombre Completo</label>
+            <input type="text" id="nombre" name="nombre" class="form-control" placeholder="Ej: Juan Pérez" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="email" class="form-label">Correo Electrónico</label>
+            <input type="email" id="email" name="email" class="form-control" placeholder="ejemplo@correo.com" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="telefono" class="form-label">Teléfono de Contacto</label>
+            <input type="text" id="telefono" name="telefono" class="form-control" placeholder="Ej: 300 123 4567">
+        </div>
+
+        <div class="mb-2">
+            <label for="rol" class="form-label fw-bold">Rol Asignado</label>
+            <select class="form-select" id="rol" name="rol" required>
+                <option value="contador" selected>Contador (Acceso limitado)</option>
+                <option value="admin">Administrador (Acceso total)</option>
+            </select>
+        </div>
+
+        <div class="mb-3" id="contenedor-password">
+              <label for="password" class="form-label fw-bold">Contraseña</label>
+              <input type="password" id="password" name="password" class="form-control">
+              <div class="form-text text-muted">Dejar en blanco para mantener la actual.</div>
+       </div>
+
+        <div class="modal-footer bg-light border-0">
+            <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn text-white px-4 fw-bold" style="background-color: #1e3a5f;">
+                Guardar Usuario
+            </button>
+        </div>
+    </form>
+</div>
     </div>
 </div>

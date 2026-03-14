@@ -20,56 +20,63 @@ def panel_admin():
     # Renderizamos el archivo que pusiste en la carpeta 'administrador'
     return render_template('administrador/administrador.html', usuarios=todos_los_usuarios)
 
-# --- RUTA PARA CREAR NUEVOS CONTADORES ---
+# --- RUTA PARA CREAR NUEVOS USUARIOS ---
 @usuarios_bp.route('/usuarios/crear', methods=['POST'])
 @login_required
 def crear_usuario():
+    # 1. Seguridad: Solo el admin entra
     if current_user.rol != 'admin':
-        flash('Acceso denegado.', 'danger')
+        flash('Acceso denegado: Se requieren permisos de administrador.', 'danger')
         return redirect(url_for('colegios.mostrar_colegios'))
 
-    # Capturamos el nuevo campo del formulario
-    nombre_completo = request.form.get('nombre').strip() if request.form.get('nombre') else ""
-    username = request.form.get('username').strip()
+    # 2. Captura y limpieza de datos
+    nombre_completo = request.form.get('nombre', '').strip()
+    username = request.form.get('username', '').strip()
     rol = request.form.get('rol')
-    email = request.form.get('email').strip()
-    telefono = request.form.get('telefono').strip()
+    email = request.form.get('email', '').strip()
+    telefono = request.form.get('telefono', '').strip()
 
-    # 1. Validación de campos vacíos (Agregamos nombre_completo a la lista)
+    # 3. Validación de campos obligatorios
     if not nombre_completo or not username or not rol or not email:
-        flash('El nombre completo, el nombre de usuario, el rol y el correo son obligatorios.', 'warning')
+        flash('El nombre completo, usuario, rol y correo son obligatorios.', 'warning')
         return redirect(url_for('usuarios.lista_usuarios'))
 
-    # 2. Validar duplicados (Username)
-    if Usuario.query.filter_by(username=username).first():
-        flash(f'El nombre de usuario "{username}" ya está registrado.', 'danger')
+    # 4. Validar duplicados (Username o Email) de una sola vez
+    usuario_existente = Usuario.query.filter(
+        (Usuario.username == username) | (Usuario.email == email)
+    ).first()
+    
+    if usuario_existente:
+        if usuario_existente.username == username:
+            flash(f'El nombre de usuario "{username}" ya existe.', 'danger')
+        else:
+            flash(f'El correo "{email}" ya está registrado.', 'danger')
         return redirect(url_for('usuarios.lista_usuarios'))
 
-    # 3. Validar duplicados (Email)
-    if Usuario.query.filter_by(email=email).first():
-        flash(f'El correo "{email}" ya está asignado a otro usuario.', 'danger')
-        return redirect(url_for('usuarios.lista_usuarios'))
-
+    # 5. Intentar guardar en la Base de Datos
     try:
         nuevo_usuario = Usuario(
-            nombre_completo=nombre_completo, # Nuevo campo
+            nombre_completo=nombre_completo,
             username=username, 
             rol=rol, 
             email=email, 
             telefono=telefono
         )
+        
+        # IMPORTANTE: Asignamos el username como contraseña inicial
+        # Ya que ocultamos el input de password en el modal al crear
         nuevo_usuario.set_password(username) 
+        
         db.session.add(nuevo_usuario)
         db.session.commit()
         
-        # Alerta de éxito con el nombre real
-        flash(f'Usuario {nombre_completo} creado exitosamente.', 'success')
+        # Mensaje informativo para el administrador
+        flash(f'¡Éxito! Usuario "{nombre_completo}" creado. Contraseña provisional: {username}', 'success')
         
     except Exception as e:
         db.session.rollback()
-        # Imprimir el error real en la terminal te ayudará a debuguear si algo falla
-        print(f"Error en creación de usuario: {str(e)}")
-        flash('Ocurrió un error inesperado al guardar en la base de datos.', 'danger')
+        print(f"Error crítico en DB: {str(e)}") # Para tu consola de VS Code
+        flash('Error al procesar la solicitud en el servidor.', 'danger')
 
     return redirect(url_for('usuarios.lista_usuarios'))
 
@@ -108,5 +115,62 @@ def eliminar_usuario(id):
     except Exception as e:
         db.session.rollback()
         flash('No se pudo eliminar el usuario.', 'danger')
+
+    return redirect(url_for('usuarios.lista_usuarios'))
+
+# --- RUTA PARA EDITAR USUARIOS EXISTENTES ---
+@usuarios_bp.route('/usuarios/editar', methods=['POST'])
+@login_required
+def editar_usuario():
+    # 1. Seguridad: Solo el admin edita
+    if current_user.rol != 'admin':
+        flash('No tienes permiso para realizar esta acción.', 'danger')
+        return redirect(url_for('usuarios.lista_usuarios'))
+
+    # 2. Obtener el usuario o lanzar 404 si el ID no es válido
+    user_id = request.form.get('usuario_id')
+    if not user_id:
+        flash('Error: No se proporcionó un ID de usuario válido.', 'danger')
+        return redirect(url_for('usuarios.lista_usuarios'))
+        
+    usuario = Usuario.query.get_or_404(user_id)
+
+    # 3. Capturar nuevos datos
+    nuevo_username = request.form.get('username', '').strip()
+    nuevo_email = request.form.get('email', '').strip()
+    nuevo_nombre = request.form.get('nombre', '').strip()
+    nuevo_telefono = request.form.get('telefono', '').strip()
+    nuevo_rol = request.form.get('rol')
+
+    # 4. Validar que el nuevo Username o Email no los tenga OTRO usuario
+    # Excluimos al usuario actual de la búsqueda usando .id != usuario.id
+    usuario_duplicado = Usuario.query.filter(
+        (Usuario.id != usuario.id) & 
+        ((Usuario.username == nuevo_username) | (Usuario.email == nuevo_email))
+    ).first()
+
+    if usuario_duplicado:
+        flash('Error: El nombre de usuario o el correo ya están en uso por otra persona.', 'danger')
+        return redirect(url_for('usuarios.lista_usuarios'))
+
+    # 5. Aplicar cambios
+    usuario.username = nuevo_username
+    usuario.nombre_completo = nuevo_nombre
+    usuario.email = nuevo_email
+    usuario.telefono = nuevo_telefono
+    usuario.rol = nuevo_rol
+
+    # Lógica de contraseña: Solo si se escribió algo en el campo
+    nueva_clave = request.form.get('password')
+    if nueva_clave and nueva_clave.strip():
+        usuario.set_password(nueva_clave.strip())
+
+    try:
+        db.session.commit()
+        flash(f'Usuario "{usuario.nombre_completo}" actualizado con éxito.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error en edición: {str(e)}")
+        flash('Ocurrió un error inesperado al actualizar los datos.', 'danger')
 
     return redirect(url_for('usuarios.lista_usuarios'))
