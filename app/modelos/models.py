@@ -105,7 +105,7 @@ class Colegio(db.Model):
 class ProcesoContractual(db.Model):
     __tablename__ = 'procesos_contractuales'
     id = db.Column(db.Integer, primary_key=True)
-    colegio_id = db.Column(db.Integer, db.ForeignKey('colegios.id'), nullable=False)
+    colegio_id = db.Column(db.Integer, db.ForeignKey('colegios.id', ondelete='CASCADE'), nullable=False)
     proveedor_id = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=False)
     proveedor2_id = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
     proveedor3_id = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
