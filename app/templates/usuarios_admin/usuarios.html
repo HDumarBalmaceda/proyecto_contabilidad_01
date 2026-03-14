@@ -129,6 +129,6 @@
 
 {% include "usuarios_admin/_modal_crear_usuario.html" %}
 
-<script src="{{ url_for('static', filename='js/admin_usuarios/gestion_usuarios.js') }}"></script>
-
+{% endblock %} {% block scripts %}
+    <script src="{{ url_for('static', filename='js/admin_usuarios/gestion_usuarios.js') }}"></script>
 {% endblock %}

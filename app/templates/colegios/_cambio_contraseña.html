@@ -1,0 +1,42 @@
+<div class="modal fade" 
+     id="modalCambioClave" 
+     data-bs-backdrop="static" 
+     tabindex="-1" 
+     aria-labelledby="modalCambioClaveLabel" 
+     aria-hidden="true"
+     data-show-modal="{{ 'true' if session.get('mostrar_modal_clave') else 'false' }}">
+     <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-warning text-dark border-0">
+                <h5 class="modal-title fw-bold" id="modalCambioClaveLabel">
+                    <i class="bi bi-shield-exclamation me-2"></i>Seguridad Requerida
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-4">
+                    <p class="text-muted">Detectamos que tu contraseña es igual a tu nombre de usuario. Por seguridad, te recomendamos actualizarla.</p>
+                </div>
+                
+                <form id="formCambioPassword" action="{{ url_for('usuarios.cambio_obligatorio') }}" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nueva Contraseña</label>
+                        <input type="password" id="n_pass" name="password" class="form-control" placeholder="Mínimo 6 caracteres" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Confirmar Contraseña</label>
+                        <input type="password" id="c_pass" name="confirm_password" class="form-control" placeholder="Repite la contraseña" required>
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100 fw-bold shadow-sm">
+                        Actualizar Contraseña
+                    </button>
+                </form>
+            </div>
+            <div class="modal-footer border-0 justify-content-center">
+                <button type="button" class="btn btn-link text-muted text-decoration-none small" data-bs-dismiss="modal">
+                    Recordar más tarde
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

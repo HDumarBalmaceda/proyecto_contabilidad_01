@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session 
 from flask_login import login_required, current_user
 from app.modelos.models import Usuario  # Importante para la tabla de usuarios
 from app import db
@@ -174,3 +174,45 @@ def editar_usuario():
         flash('Ocurrió un error inesperado al actualizar los datos.', 'danger')
 
     return redirect(url_for('usuarios.lista_usuarios'))
+
+
+@usuarios_bp.route('/cambiar-password-obligatorio', methods=['POST'])
+@login_required
+def cambio_obligatorio():
+    nueva_clave = request.form.get('password')
+    confirmar = request.form.get('confirm_password')
+
+    # DEBUG: Para ver en consola qué llega
+    print(f"DEBUG: Nueva clave: {nueva_clave}")
+    print(f"DEBUG: Confirmar: {confirmar}")
+
+    if not nueva_clave or nueva_clave.strip() == "":
+        flash('La contraseña no puede estar vacía.', 'warning')
+        return redirect(url_for('colegios.mostrar_colegios'))
+
+    if nueva_clave != confirmar:
+        flash('Las contraseñas no coinciden.', 'error')
+        return redirect(url_for('colegios.mostrar_colegios'))
+
+    try:
+        # 1. Actualizamos la clave usando el método del modelo
+        current_user.set_password(nueva_clave.strip())
+        
+        # 2. Forzamos que SQLAlchemy marque al usuario como "modificado"
+        db.session.add(current_user) 
+        
+        # 3. Guardamos en la base de datos
+        db.session.commit()
+        
+        # 4. IMPORTANTE: Limpiamos la sesión para que el modal no vuelva a salir
+        session.pop('mostrar_modal_clave', None)
+        
+        print("DEBUG: ¡Contraseña actualizada en DB con éxito!")
+        flash('¡Contraseña actualizada con éxito!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"DEBUG ERROR: {str(e)}")
+        flash('Error al actualizar la base de datos.', 'error')
+
+    return redirect(url_for('colegios.mostrar_colegios'))

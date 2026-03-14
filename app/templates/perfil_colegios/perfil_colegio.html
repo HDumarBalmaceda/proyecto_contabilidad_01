@@ -16,10 +16,14 @@
                 <i class="bi bi-arrow-left-circle me-2"></i> GESTION DOCUMENTAL PROCESOS SECOP II
             </a>
             <div class="me-3">
-                <span class="badge bg-light text-dark p-2 shadow-sm">
-                    <i class="bi bi-person-fill me-1"></i> 
-                    {{ current_user.username | capitalize }}
-                </span>
+                <button type="button" 
+                    class="badge bg-light text-dark p-2 shadow-sm border-0" 
+                    data-bs-toggle="modal" 
+                    data-bs-target="#modalPerfilUsuario"
+                    style="cursor: pointer;">
+                <i class="bi bi-person-fill me-1"></i> 
+                {{ current_user.username | capitalize }}
+            </button>
             </div>
         </div>
     </nav>
@@ -191,6 +195,7 @@
     {% include 'perfil_colegios/modal_generador_documentos.html' %}
     {% include 'perfil_colegios/_modal_historial.html' %}
     {% include 'perfil_colegios/_modal_detalle_proceso.html' %}
+    {% include "perfil_usuarios/_modal_perfil.html" %}
 
 
 </body>
