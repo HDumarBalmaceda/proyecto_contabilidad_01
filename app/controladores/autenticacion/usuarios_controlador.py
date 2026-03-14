@@ -80,23 +80,3 @@ def lista_usuarios():
     return render_template('usuarios_admin/usuarios.html', usuarios=todos_los_usuarios)
 
 
-@usuarios.route('/usuarios/eliminar/<int:id>', methods=['DELETE', 'POST'])
-@login_required
-def eliminar_usuario(id):
-    if current_user.rol != 'admin':
-        return jsonify({'status': 'error', 'message': 'No tienes permisos'}), 403
-    
-    if current_user.id == id:
-        return jsonify({'status': 'error', 'message': 'No puedes eliminar tu propia cuenta'}), 400
-
-    usuario = Usuario.query.get_or_404(id)
-    
-    try:
-        # IMPORTANTE: Antes de eliminar, podrías querer desasignar sus colegios
-        # o simplemente dejar que el error salte si hay integridad referencial.
-        db.session.delete(usuario)
-        db.session.commit()
-        return jsonify({'status': 'success', 'message': f'Usuario {usuario.username} eliminado correctamente'})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'status': 'error', 'message': 'No se puede eliminar el usuario porque tiene registros asociados (Colegios o Proveedores).'}), 500

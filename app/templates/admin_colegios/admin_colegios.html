@@ -123,17 +123,19 @@
                             <td class="text-center">
                                 <div class="btn-group">
                                     <button class="btn btn-sm btn-outline-warning btn-editar" 
-                                          title="Editar Colegio"
-                                          data-id="{{ col.id }}" 
-                                          data-nombre="{{ col.nombre }}"
-                                          data-nit="{{ col.nit }}" 
-                                          data-direccion="{{ col.direccion }}"
-                                          data-telefono="{{ col.telefono }}" 
-                                          data-municipio="{{ col.municipio }}"
-                                          data-rector_nombre="{{ col.rector_nombre }}" 
-                                          data-rector_documento="{{ col.rector_documento }}"
-                                          data-rector_tipo_documento="{{ col.rector_tipo_documento }}">
-                                        <i class="bi bi-pencil-square"></i>
+                                             title="Editar Colegio"
+                                             data-id="{{ col.id }}" 
+                                             data-nombre="{{ col.nombre }}"
+                                             data-nit="{{ col.nit }}" 
+                                             data-direccion="{{ col.direccion }}"
+                                             data-telefono="{{ col.telefono }}" 
+                                             data-municipio="{{ col.municipio }}"
+                                             data-rector_nombre="{{ col.rector_nombre }}" 
+                                             data-rector_documento="{{ col.rector_documento }}"
+                                             data-rector_tipo_documento="{{ col.rector_tipo_documento }}"
+                                             data-logo="{{ col.logo_path if col.logo_path else '' }}"
+                                             data-firma="{{ col.firma_path if col.firma_path else '' }}">
+                                                <i class="bi bi-pencil-square"></i>
                                     </button>
                                     {% if current_user.rol == 'admin' %}
                                     <button class="btn btn-sm btn-outline-danger btn-eliminar" 

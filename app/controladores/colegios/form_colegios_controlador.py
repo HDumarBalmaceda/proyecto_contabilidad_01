@@ -5,6 +5,7 @@ from app import db
 from app.modelos.models import Colegio, Proveedor
 from sqlalchemy.exc import IntegrityError
 from flask_login import login_required, current_user
+import traceback
 
 # Crear blueprint para colegios
 colegios_bp = Blueprint('colegios', __name__, url_prefix='/colegios')
@@ -30,9 +31,16 @@ def crear_colegio():
     # 1. Seguridad
     if current_user.rol != 'admin':
         flash("Acceso denegado: No tienes permisos.", "danger")
-        return redirect(url_for('colegios.index')) # O la ruta de tu lista
+        return redirect(url_for('colegios.vista_admin_colegios'))
 
     try:
+        # --- DEBUG: Ver que llega del formulario ---
+        print("\n" + "="*50)
+        print("DEBUG: INICIANDO CREACIÓN DE COLEGIO")
+        print("DATOS RECIBIDOS:", request.form)
+        print("ARCHIVOS RECIBIDOS:", request.files)
+        print("="*50)
+
         # 2. Captura de datos
         nombre = request.form.get('nombre')
         nit = request.form.get('nit')
@@ -44,45 +52,72 @@ def crear_colegio():
         rector_tipo_documento = request.form.get('rector_tipo_documento')
 
         # 3. Manejo de archivos
-        upload_folder = os.path.join("app", "static", "uploads")
+        # Usamos current_app.root_path para evitar errores de rutas relativas
+        upload_folder = os.path.join(current_app.root_path, 'static', 'uploads')
+        
         if not os.path.exists(upload_folder):
-            os.makedirs(upload_folder)
+            print(f"DEBUG: Creando carpeta de uploads en {upload_folder}")
+            os.makedirs(upload_folder, exist_ok=True)
 
-        # Logo
+        # Limpiamos el nombre para el archivo (quitar espacios)
+        nombre_limpio = nombre.replace(' ', '_') if nombre else "sin_nombre"
+
+        # Procesar Logo
         logo_file = request.files.get('logo_path')
-        logo_filename = f"logo_{nombre.replace(' ', '_')}.png" if logo_file else None
-        if logo_file: 
-            logo_file.save(os.path.join(upload_folder, logo_filename))
+        logo_filename = None
+        if logo_file and logo_file.filename != '':
+            logo_filename = f"logo_{nombre_limpio}.png"
+            logo_path_full = os.path.join(upload_folder, logo_filename)
+            logo_file.save(logo_path_full)
+            print(f"DEBUG: Logo guardado en {logo_path_full}")
 
-        # Firma
+        # Procesar Firma
         firma_file = request.files.get('firma_path')
-        firma_filename = f"firma_{nombre.replace(' ', '_')}.png" if firma_file else None
-        if firma_file: 
-            firma_file.save(os.path.join(upload_folder, firma_filename))
+        firma_filename = None
+        if firma_file and firma_file.filename != '':
+            firma_filename = f"firma_{nombre_limpio}.png"
+            firma_path_full = os.path.join(upload_folder, firma_filename)
+            firma_file.save(firma_path_full)
+            print(f"DEBUG: Firma guardada en {firma_path_full}")
 
         # 4. Guardar en DB
+        print("DEBUG: Creando objeto Colegio en SQLAlchemy...")
         nuevo_colegio = Colegio(
-            nombre=nombre, nit=nit, direccion=direccion, telefono=telefono,
-            municipio=municipio, rector_nombre=rector_nombre,
-            rector_documento=rector_documento, rector_tipo_documento=rector_tipo_documento,
-            logo_path=logo_filename, firma_path=firma_filename
+            nombre=nombre, 
+            nit=nit, 
+            direccion=direccion, 
+            telefono=telefono,
+            municipio=municipio, 
+            rector_nombre=rector_nombre,
+            rector_documento=rector_documento, 
+            rector_tipo_documento=rector_tipo_documento if rector_tipo_documento else 'CC',
+            logo_path=logo_filename, 
+            firma_path=firma_filename
         )
 
         db.session.add(nuevo_colegio)
+        print("DEBUG: Ejecutando db.session.commit()...")
         db.session.commit()
         
-        # ÉXITO: Redirigimos y mostramos mensaje fuera del modal
+        print("DEBUG: ¡EXITO! Colegio guardado correctamente.")
         flash("¡Institución registrada exitosamente!", "success")
         return redirect(url_for('colegios.vista_admin_colegios'))
 
-    except IntegrityError:
+    except IntegrityError as e:
         db.session.rollback()
-        # ERROR DE DUPLICADO: Flash y redirect (el JS abrirá el modal)
-        flash("Error: Ya existe un colegio con este NIT o nombre.", "danger")
+        print("---------- ERROR DE INTEGRIDAD (NIT DUPLICADO?) ----------")
+        print(str(e))
+        flash("Error: Ya existe un colegio con este NIT.", "danger")
         return redirect(url_for('colegios.vista_admin_colegios'))
-        
+
     except Exception as e:
         db.session.rollback()
+        print("\n" + "!"*50)
+        print("---------- ERROR CRÍTICO DETECTADO ----------")
+        # Esto imprime el error exacto y la línea donde ocurrió
+        traceback.print_exc() 
+        print("!"*50 + "\n")
+        
         flash(f"Error inesperado: {str(e)}", "danger")
         return redirect(url_for('colegios.vista_admin_colegios'))
 

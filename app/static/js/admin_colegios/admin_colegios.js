@@ -1,6 +1,6 @@
 /**
- * Lógica para la vista previa de imágenes en los cuadros de carga
- */ 
+ * 1. Lógica para la vista previa de imágenes (Solo para creación)
+ */
 function configurarVistaPrevia(inputId, previewId, textId) {
     const input = document.getElementById(inputId);
     const preview = document.getElementById(previewId);
@@ -22,113 +22,100 @@ function configurarVistaPrevia(inputId, previewId, textId) {
     }
 }
 
-// Inicializar cuando cargue el DOM
+/**
+ * 2. Inicialización y Eventos del Administrador
+ */
 document.addEventListener("DOMContentLoaded", function() {
+    // Inicializar vistas previas
     configurarVistaPrevia("logo_path", "previewLogo", "logoText");
     configurarVistaPrevia("firma_path", "previewFirma", "firmaText");
-}); 
 
-// alertas del form craer colegios 
-document.addEventListener("DOMContentLoaded", function() {
+    const form = document.getElementById("formCrearColegio");
+    const modalTitle = document.getElementById('modalTitle');
+    const btnGuardar = document.getElementById('btn-guardar-nuevo');
+    const btnActualizar = document.getElementById('btn-actualizar-edit');
+
+    // Re-abrir modal si hay errores de validación de Flask (Creación)
     if (document.getElementById('has-errors')) {
         const modalElement = document.getElementById('crearColegioModal');
         if (modalElement) {
-            // Intentamos obtener la instancia existente o crear una nueva si no existe
-            let modalCrear = bootstrap.Modal.getInstance(modalElement);
-            if (!modalCrear) {
-                modalCrear = new bootstrap.Modal(modalElement);
-            }
-            modalCrear.show();
+            bootstrap.Modal.getOrCreateInstance(modalElement).show();
         }
     }
-});
 
-    // --- 2. LÓGICA PARA CREAR (Botón verde principal) ---
-    // Este botón SÍ puede mantener el data-bs-toggle o lo manejamos aquí:
+    // --- LÓGICA PARA LIMPIAR EL MODAL AL CREAR (Modo Nuevo) ---
     const btnNuevo = document.querySelector('[data-bs-target="#crearColegioModal"]:not(.btn-editar)');
     if (btnNuevo) {
-    btnNuevo.addEventListener('click', function(e) {
-        // Definir localmente para evitar el error "form is not defined"
-        const form = document.getElementById("formCrearColegio");
-        const modalTitle = document.getElementById('modalTitle');
-
-        if (form && modalTitle) {
-            modalTitle.textContent = "Registrar Nuevo Colegio";
-            form.reset();
-            form.setAttribute('data-mode', 'create');
-            form.removeAttribute('data-id');
-            
-            // Limpiar vistas previas
-            document.querySelectorAll('.upload-box img').forEach(img => img.classList.add('d-none'));
-            document.querySelectorAll('.upload-box span').forEach(span => span.classList.remove('d-none'));
-        }
-    });
-}
-    // --- 3. LÓGICA PARA ELIMINAR ---
-    document.addEventListener('click', function(event) {
-        const boton = event.target.closest('.btn-eliminar');
-        if (boton) {
-            const id = boton.getAttribute('data-id');
-            const nombre = boton.getAttribute('data-nombre');
-
-            Swal.fire({
-                title: '¿Estás seguro?',
-                text: `Vas a eliminar el colegio "${nombre}". Esta acción no se puede deshacer y todos los procesos que tengas asociados a este colegio tambien se borraran .`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Sí, eliminar',
-                cancelButtonText: 'Cancelar'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    fetch(`/colegios/eliminar/${id}`, { method: 'DELETE' })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            Swal.fire('¡Eliminado!', data.message, 'success')
-                            .then(() => { location.reload(); });
-                        } else {
-                            Swal.fire('Error', data.message, 'error');
-                        }
-                    });
-                }
-            });
-        }
-    });
-
-
-    // funcion para el input de busqueda 
-
-document.addEventListener("DOMContentLoaded", function() {
-    const inputBusqueda = document.getElementById('busquedaColegio');
-    const tablaColegios = document.querySelector('table tbody');
-    const filas = tablaColegios.getElementsByTagName('tr');
-
-    if (inputBusqueda) {
-        inputBusqueda.addEventListener('keyup', function() {
-            const texto = inputBusqueda.value.toLowerCase();
-
-            Array.from(filas).forEach(fila => {
-                // Obtenemos el texto del nombre (primera celda) y del NIT (segunda celda)
-                const nombre = fila.cells[0].textContent.toLowerCase();
-                const nit = fila.cells[1].textContent.toLowerCase();
-
-                if (nombre.includes(texto) || nit.includes(texto)) {
-                    fila.style.display = ""; // Muestra la fila
-                } else {
-                    fila.style.display = "none"; // Oculta la fila
-                }
-            });
-            
-            // Opcional: Mostrar mensaje si no hay resultados
-            actualizarContadorVisible();
+        btnNuevo.addEventListener('click', function() {
+            if (form) {
+                form.reset();
+                form.action = "/colegios/crear"; 
+                if (modalTitle) modalTitle.textContent = "Registrar Nuevo Colegio";
+                
+                // Intercambio de botones: Mostrar Guardar, Ocultar Actualizar
+                if (btnGuardar) btnGuardar.classList.remove('d-none');
+                if (btnActualizar) btnActualizar.classList.add('d-none');
+                
+                // Limpiar imágenes de vista previa
+                document.querySelectorAll('.upload-box img').forEach(img => img.classList.add('d-none'));
+                document.querySelectorAll('.upload-box span').forEach(span => span.classList.remove('d-none'));
+            }
         });
     }
 
-    function actualizarContadorVisible() {
-        const visibles = Array.from(filas).filter(f => f.style.display !== "none").length;
-        const footer = document.querySelector('.card-footer strong');
-        if (footer) footer.textContent = visibles;
+    // --- BÚSQUEDA EN TIEMPO REAL ---
+    const inputBusqueda = document.getElementById('busquedaColegio');
+    const tablaColegios = document.querySelector('table tbody');
+    
+    if (inputBusqueda && tablaColegios) {
+        const filas = tablaColegios.getElementsByTagName('tr');
+        inputBusqueda.addEventListener('keyup', function() {
+            const texto = inputBusqueda.value.toLowerCase();
+            Array.from(filas).forEach(fila => {
+                const nombre = fila.cells[0]?.textContent.toLowerCase() || "";
+                const nit = fila.cells[1]?.textContent.toLowerCase() || "";
+                fila.style.display = (nombre.includes(texto) || nit.includes(texto)) ? "" : "none";
+            });
+            actualizarContadorVisible(filas);
+        });
     }
 });
+
+/**
+ * 3. Lógica para Eliminar (Exclusivo Admin)
+ */
+document.addEventListener('click', function(event) {
+    const boton = event.target.closest('.btn-eliminar');
+    if (boton) {
+        const id = boton.getAttribute('data-id');
+        const nombre = boton.getAttribute('data-nombre');
+
+        Swal.fire({
+            title: '¿Estás seguro?',
+            text: `Vas a eliminar el colegio "${nombre}". Esta acción no se puede deshacer.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/colegios/eliminar/${id}`, { method: 'DELETE' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        Swal.fire('¡Eliminado!', data.message, 'success').then(() => location.reload());
+                    } else {
+                        Swal.fire('Error', data.message, 'error');
+                    }
+                });
+            }
+        });
+    }
+});
+
+function actualizarContadorVisible(filas) {
+    const visibles = Array.from(filas).filter(f => f.style.display !== "none").length;
+    const footer = document.querySelector('.card-footer strong');
+    if (footer) footer.textContent = visibles;
+}

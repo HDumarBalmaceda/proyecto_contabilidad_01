@@ -10,7 +10,7 @@ colegio_proveedor = db.Table('colegio_proveedor',
 )
 
 # -------------------------
-# NUEVO: Modelo de Usuarios
+# Modelo de Usuarios
 # -------------------------
 class Usuario(db.Model, UserMixin):
     __tablename__ = 'usuarios'
@@ -18,12 +18,13 @@ class Usuario(db.Model, UserMixin):
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     rol = db.Column(db.String(20), default='contador', nullable=False)
-    proveedores = db.relationship('Proveedor', backref='creador_rel', lazy=True)
     
     # NUEVOS CAMPOS
-    email = db.Column(db.String(120), unique=True, nullable=True) # Opcional para admin
+    email = db.Column(db.String(120), unique=True, nullable=True)
     telefono = db.Column(db.String(20), nullable=True)
     
+    # Relaciones
+    proveedores = db.relationship('Proveedor', backref='creador_rel', lazy=True)
     colegios = db.relationship('Colegio', backref='contador', lazy=True)
 
     def set_password(self, password):
@@ -38,7 +39,6 @@ class Usuario(db.Model, UserMixin):
 class Proveedor(db.Model):
     __tablename__ = 'proveedores'
     id = db.Column(db.Integer, primary_key=True)
-    # NUEVA COLUMNA: Para saber qué usuario creó este proveedor
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False, index=True)
     tipo_tercero = db.Column(db.String(50), nullable=False)
     documento = db.Column(db.String(20),  nullable=False, index=True)
@@ -69,7 +69,6 @@ class Proveedor(db.Model):
 class Colegio(db.Model):
     __tablename__ = 'colegios'
     id = db.Column(db.Integer, primary_key=True)
-    # --- NUEVA COLUMNA: Relaciona el colegio con un contador ---
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True, index=True)
     nombre = db.Column(db.String(200), nullable=False)
     nit = db.Column(db.String(50), unique=True, index=True)
@@ -78,10 +77,11 @@ class Colegio(db.Model):
     municipio = db.Column(db.String(100))
     rector_nombre = db.Column(db.String(150))
     rector_documento = db.Column(db.String(50))
+    # Cambia esta línea en el modelo Colegio:
     rector_tipo_documento = db.Column(
-        db.Enum('CC', 'CE', 'TI', 'PAS', 'OTRO', name='doc_type'),
-        nullable=False,
-        default='CC'
+    db.Enum('CC', 'CE', 'TI', 'PAS', 'OTRO', name='doc_type', native_enum=False), # <--- Añade native_enum=False
+    nullable=False,
+    default='CC'
     )
     logo_path = db.Column(db.String(500))
     firma_path = db.Column(db.String(500))
@@ -106,13 +106,10 @@ class ProcesoContractual(db.Model):
     __tablename__ = 'procesos_contractuales'
     id = db.Column(db.Integer, primary_key=True)
     colegio_id = db.Column(db.Integer, db.ForeignKey('colegios.id'), nullable=False)
-    
-    # Proveedores
     proveedor_id = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=False)
     proveedor2_id = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
     proveedor3_id = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
     
-    # NUEVOS CAMPOS: Valores de propuestas adicionales
     valor_propuesta2 = db.Column(db.Float, default=0.0)
     valor_propuesta3 = db.Column(db.Float, default=0.0)
     promedio_propuestas = db.Column(db.Float)
@@ -127,17 +124,15 @@ class ProcesoContractual(db.Model):
     rubro_nombre = db.Column(db.String(200))
     numero_proceso_colegio = db.Column(db.Integer)
     
-    # Fechas
     f_elaboracion = db.Column(db.Date)
     f_publicacion = db.Column(db.Date)
     f_recepcion = db.Column(db.Date)
     f_cierre = db.Column(db.Date)
     f_verificacion = db.Column(db.Date)
     f_firma = db.Column(db.Date)
-    f_recibido = db.Column(db.Date) # <<< NUEVA FECHA AGREGADA
+    f_recibido = db.Column(db.Date)
     
     fecha_creacion = db.Column(db.DateTime, default=db.func.current_timestamp())
-
     detalles_items = db.relationship('ItemProceso', backref='proceso', cascade="all, delete-orphan")
 
 # -------------------------
