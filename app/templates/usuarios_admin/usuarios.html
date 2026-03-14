@@ -2,6 +2,19 @@
 
 {% block content %}
 <div class="container mt-4">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          {% if category == 'success' %}
+          <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="fw-bold" style="color: #1e3a5f;">
@@ -42,7 +55,7 @@
                                     <i class="bi bi-person-fill text-primary fs-5"></i>
                                 </div>
                                 <div>
-                                    <span class="fw-bold d-block">{{ u.username | capitalize }}</span>
+                                    <span class="fw-bold d-block">{{ u.nombre_completo if u.nombre_completo else u.username | capitalize }}</span>
                                     <small class="text-muted">Username: {{ u.username }}</small>
                                 </div>
                             </div>
@@ -75,9 +88,14 @@
                                 <button class="btn btn-sm btn-outline-warning" title="Editar Usuario">
                                     <i class="bi bi-pencil-square"></i>
                                 </button>
-                                <button class="btn btn-sm btn-outline-danger" title="Eliminar Usuario">
-                                    <i class="bi bi-trash3-fill"></i>
-                                </button>
+                                <button type="button" 
+                                class="btn btn-sm btn-outline-danger btn-eliminar-usuario" 
+                                data-id="{{ u.id }}" 
+                                data-nombre="{{ u.nombre_completo if u.nombre_completo else u.username }}"
+                                data-url="{{ url_for('usuarios.eliminar_usuario', id=u.id) }}"
+                                title="Eliminar Usuario">
+                                     <i class="bi bi-trash3-fill"></i>
+                                 </button>
                             </div>
                         </td>
                     </tr>
@@ -90,6 +108,6 @@
 
 {% include "usuarios_admin/_modal_crear_usuario.html" %}
 
-<script src="{{ url_for('static', filename='js/administrador/gestion_usuarios.js') }}"></script>
+<script src="{{ url_for('static', filename='js/admin_usuarios/gestion_usuarios.js') }}"></script>
 
 {% endblock %}

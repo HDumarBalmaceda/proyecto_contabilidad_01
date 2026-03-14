@@ -16,6 +16,7 @@ class Usuario(db.Model, UserMixin):
     __tablename__ = 'usuarios'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
+    nombre_completo = db.Column(db.String(100), nullable=True)
     password_hash = db.Column(db.String(256), nullable=False)
     rol = db.Column(db.String(20), default='contador', nullable=False)
     
@@ -24,7 +25,7 @@ class Usuario(db.Model, UserMixin):
     telefono = db.Column(db.String(20), nullable=True)
     
     # Relaciones
-    proveedores = db.relationship('Proveedor', backref='creador_rel', lazy=True)
+    proveedores = db.relationship('Proveedor', backref='creador_rel', lazy=True, cascade="all, delete-orphan")
     colegios = db.relationship('Colegio', backref='contador', lazy=True)
 
     def set_password(self, password):

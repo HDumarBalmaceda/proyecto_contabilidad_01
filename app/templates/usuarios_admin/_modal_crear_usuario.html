@@ -8,19 +8,22 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <div class="modal-body">
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                  {% if messages %}
-                    {% for category, message in messages %}
-                      {% if category != 'success' %} {# Solo errores o advertencias en el modal #}
-                      <div class="alert alert-{{ category }} alert-dismissible fade show small py-2" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                      </div>
-                      {% endif %}
-                    {% endfor %}
-                  {% endif %}
-                {% endwith %}
+         <div class="modal-body">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          {% if category in ['danger', 'warning'] %} {# Solo errores o advertencias en el modal #}
+          <div class="alert alert-{{ 'danger' if category == 'danger' else 'warning' }} alert-dismissible fade show small py-2" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    
+    <form action="{{ url_for('usuarios.crear_usuario') }}" method="POST">
             
             <form action="{{ url_for('usuarios.crear_usuario') }}" method="POST">
             
@@ -33,6 +36,11 @@
                     </div>
 
                     <div class="mb-3">
+                           <label class="form-label fw-bold">Nombre Completo</label>
+                           <input type="text" name="nombre" class="form-control" placeholder="Ej: Juan Pérez" required>
+                    </div>
+
+                    <div class="mb-3">
                          <label class="form-label">Correo Electrónico</label>
                          <input type="email" name="email" class="form-control" placeholder="ejemplo@correo.com" required>
                    </div>
@@ -40,6 +48,7 @@
                             <label class="form-label">Teléfono de Contacto</label>
                             <input type="text" name="telefono" class="form-control" placeholder="Ej: 300 123 4567" required>
                      </div>
+
 
                     <div class="mb-2">
                         <label for="rol" class="form-label fw-bold">Rol Asignado</label>

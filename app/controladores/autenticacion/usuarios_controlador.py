@@ -28,14 +28,16 @@ def crear_usuario():
         flash('Acceso denegado.', 'danger')
         return redirect(url_for('colegios.mostrar_colegios'))
 
+    # Capturamos el nuevo campo del formulario
+    nombre_completo = request.form.get('nombre').strip() if request.form.get('nombre') else ""
     username = request.form.get('username').strip()
     rol = request.form.get('rol')
     email = request.form.get('email').strip()
     telefono = request.form.get('telefono').strip()
 
-    # 1. Validación de campos vacíos
-    if not username or not rol or not email:
-        flash('El nombre de usuario, el rol y el correo son obligatorios.', 'warning')
+    # 1. Validación de campos vacíos (Agregamos nombre_completo a la lista)
+    if not nombre_completo or not username or not rol or not email:
+        flash('El nombre completo, el nombre de usuario, el rol y el correo son obligatorios.', 'warning')
         return redirect(url_for('usuarios.lista_usuarios'))
 
     # 2. Validar duplicados (Username)
@@ -50,6 +52,7 @@ def crear_usuario():
 
     try:
         nuevo_usuario = Usuario(
+            nombre_completo=nombre_completo, # Nuevo campo
             username=username, 
             rol=rol, 
             email=email, 
@@ -58,9 +61,14 @@ def crear_usuario():
         nuevo_usuario.set_password(username) 
         db.session.add(nuevo_usuario)
         db.session.commit()
-        flash(f'Usuario {username} creado exitosamente.', 'success')
+        
+        # Alerta de éxito con el nombre real
+        flash(f'Usuario {nombre_completo} creado exitosamente.', 'success')
+        
     except Exception as e:
         db.session.rollback()
+        # Imprimir el error real en la terminal te ayudará a debuguear si algo falla
+        print(f"Error en creación de usuario: {str(e)}")
         flash('Ocurrió un error inesperado al guardar en la base de datos.', 'danger')
 
     return redirect(url_for('usuarios.lista_usuarios'))
@@ -80,3 +88,25 @@ def lista_usuarios():
     return render_template('usuarios_admin/usuarios.html', usuarios=todos_los_usuarios)
 
 
+@usuarios_bp.route('/usuarios/eliminar/<int:id>', methods=['POST'])
+@login_required
+def eliminar_usuario(id):
+    if current_user.rol != 'admin':
+        flash('No tienes permisos.', 'danger')
+        return redirect(url_for('usuarios.lista_usuarios'))
+
+    usuario = Usuario.query.get_or_404(id)
+    
+    try:
+        # Liberar colegios
+        for col in usuario.colegios:
+            col.usuario_id = None
+        
+        db.session.delete(usuario)
+        db.session.commit()
+        flash(f'El usuario {usuario.username} ha sido eliminado correctamente.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('No se pudo eliminar el usuario.', 'danger')
+
+    return redirect(url_for('usuarios.lista_usuarios'))
