@@ -3,6 +3,7 @@ from app import db
 from app.modelos.models import Proveedor 
 from app.modelos.models import Colegio
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import or_
 from flask_login import login_required, current_user
 
 proveedores_bp = Blueprint('proveedores', __name__, url_prefix='/proveedores')
@@ -176,3 +177,69 @@ def obtener_proveedor_json(id):
         "banco": p.banco or "-",
         "cuenta": p.no_cuenta or "-"
     }
+
+@proveedores_bp.route('/proveedores_json_paginado')
+@login_required
+def proveedores_json_paginado():
+    try:
+        # 1. Obtener parámetros de la URL
+        page = request.args.get('page', 1, type=int)
+        search_query = request.args.get('q', '').strip()  # Capturamos el término de búsqueda
+        per_page = 12
+
+        # 2. Construir la consulta base
+        query = Proveedor.query
+
+        # 3. Aplicar filtros si hay una búsqueda
+        if search_query:
+            search_filter = f"%{search_query}%"
+            query = query.filter(
+                or_(
+                    Proveedor.documento.ilike(search_filter),
+                    Proveedor.razon_social.ilike(search_filter),
+                    Proveedor.primer_nombre.ilike(search_filter),
+                    Proveedor.primer_apellido.ilike(search_filter),
+                    Proveedor.correo_electronico.ilike(search_filter)
+                )
+            )
+
+        # 4. Ordenar y Paginar
+        pagination = query.order_by(Proveedor.razon_social.asc(), Proveedor.primer_nombre.asc())\
+            .paginate(page=page, per_page=per_page, error_out=False)
+        
+        resultado = []
+        for p in pagination.items:
+            # Mantenemos tu lógica de datos para el modal y la tabla
+            resultado.append({
+                "id": p.id,
+                "tipo_tercero": p.tipo_tercero,
+                "documento": p.documento,
+                "documento_limpio": p.documento,
+                "dv": p.dv,
+                "razon_social": p.razon_social,
+                "primer_nombre": p.primer_nombre,
+                "segundo_nombre": p.segundo_nombre,
+                "primer_apellido": p.primer_apellido,
+                "segundo_apellido": p.segundo_apellido,
+                "direccion": p.direccion,
+                "departamento": p.departamento,
+                "ciudad": p.ciudad,
+                "correo": p.correo_electronico,
+                "movil": p.movil,
+                "renta": p.renta,
+                "banco": p.banco,
+                "no_cuenta": p.no_cuenta
+            })
+
+        # 5. Retornar JSON con metadatos de paginación
+        return jsonify({
+            "proveedores": resultado,
+            "total_paginas": pagination.pages,
+            "pagina_actual": pagination.page,
+            "tiene_siguiente": pagination.has_next,
+            "tiene_anterior": pagination.has_prev,
+            "total_registros": pagination.total
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

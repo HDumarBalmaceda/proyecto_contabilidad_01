@@ -75,56 +75,14 @@
                                 <th class="text-center">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {% for p in proveedores %}
-                            <tr>
-                                <td class="ps-4 fw-bold text-dark">
-                                    {% if p.tipo_tercero == 'Persona Jurídica' %}
-                                        {{ p.razon_social }}
-                                    {% else %}
-                                        {{ p.primer_nombre }} {{ p.primer_apellido }}
-                                    {% endif %}
-                                </td>
-                                <td>{{ p.documento }}{% if p.dv %}-{{ p.dv }}{% endif %}</td>
-                                <td>{{ p.movil }}</td>
-                                <td>{{ p.correo_electronico }}</td>
-                                <td class="text-center">
-                                  
-                                <button class="btn btn-sm btn-info text-white" 
-                                 data-bs-toggle="modal" 
-                                 data-bs-target="#verProveedorModal"
-                                 data-tipo_tercero="{{ p.tipo_tercero }}"
-                                 data-documento="{{ p.documento }}"
-                                 data-dv="{{ p.dv }}"
-                                 data-razon_social="{{ p.razon_social }}"
-                                 data-primer_nombre="{{ p.primer_nombre }}"
-                                 data-segundo_nombre="{{ p.segundo_nombre }}"
-                                 data-primer_apellido="{{ p.primer_apellido }}"
-                                 data-segundo_apellido="{{ p.segundo_apellido }}"
-                                 data-direccion="{{ p.direccion }}"
-                                 data-departamento="{{ p.departamento }}"
-                                 data-ciudad="{{ p.ciudad }}"
-                                 data-correo="{{ p.correo_electronico }}"
-                                 data-movil="{{ p.movil }}"
-                                 data-renta="{{ p.renta }}"
-                                 data-banco="{{ p.banco }}"
-                                 data-no_cuenta="{{ p.no_cuenta }}">
-                               <i class="bi bi-eye-fill"></i>
-                                   </button>
-
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="5" class="text-center py-4 text-muted">
-                                    No hay proveedores registrados.
-                                </td>
-                            </tr>
-                            {% endfor %}
+                        <tbody id="tablaProveedoresBody">
+                         
                         </tbody>
                     </table>
                 </div>
             </div>
+            <div id="paginacionProveedores" class="card-footer bg-white border-top px-4 py-3">
+                </div>
         </div>
     </div>
 

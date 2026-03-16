@@ -106,10 +106,13 @@ class Colegio(db.Model):
 class ProcesoContractual(db.Model):
     __tablename__ = 'procesos_contractuales'
     id = db.Column(db.Integer, primary_key=True)
-    colegio_id = db.Column(db.Integer, db.ForeignKey('colegios.id', ondelete='CASCADE'), nullable=False)
-    proveedor_id = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=False)
-    proveedor2_id = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
-    proveedor3_id = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True)
+    colegio_id = db.Column(db.Integer, db.ForeignKey('colegios.id', ondelete='CASCADE'), nullable=False, index=True)
+    proveedor_id = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=False, index=True)
+    proveedor2_id = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True, index=True)
+    proveedor3_id = db.Column(db.Integer, db.ForeignKey('proveedores.id'), nullable=True, index=True)
+    proveedor = db.relationship('Proveedor', 
+                                foreign_keys=[proveedor_id], 
+                                backref='procesos_ganados')
     
     valor_propuesta2 = db.Column(db.Float, default=0.0)
     valor_propuesta3 = db.Column(db.Float, default=0.0)
@@ -134,7 +137,11 @@ class ProcesoContractual(db.Model):
     f_recibido = db.Column(db.Date)
     
     fecha_creacion = db.Column(db.DateTime, default=db.func.current_timestamp())
-    detalles_items = db.relationship('ItemProceso', backref='proceso', cascade="all, delete-orphan")
+    # Cámbialo así para no romper tus funciones actuales:
+    detalles_items = db.relationship('ItemProceso', 
+                                 backref='proceso', 
+                                 cascade="all, delete-orphan", 
+                                 lazy='selectin')
 
 # -------------------------
 # Modelo: ItemProceso
@@ -142,7 +149,7 @@ class ProcesoContractual(db.Model):
 class ItemProceso(db.Model):
     __tablename__ = 'items_proceso'
     id = db.Column(db.Integer, primary_key=True)
-    proceso_id = db.Column(db.Integer, db.ForeignKey('procesos_contractuales.id', ondelete='CASCADE'), nullable=False)
+    proceso_id = db.Column(db.Integer, db.ForeignKey('procesos_contractuales.id', ondelete='CASCADE'), nullable=False, index=True)
     codigo_clasificador = db.Column(db.String(50))
     cantidad = db.Column(db.Float, default=1.0)
     descripcion = db.Column(db.Text, nullable=False)

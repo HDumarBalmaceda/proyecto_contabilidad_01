@@ -1,67 +1,105 @@
-// 1. Variables globales
+// 1. Variables globales actualizadas
 let datosHistorialCache = [];
 let ordenDescendente = true; 
+let paginaActual = 1;      // Nueva: Para saber dónde estamos
+let idColegioActual = null; // Nueva: Para poder navegar entre páginas
+let ordenActual = 'desc'; // Por defecto los más nuevos
 
-function abrirHistorial(colegioId) {
+
+
+function abrirHistorial(colegioId, pagina = 1) {
+    // 1. Guardamos el contexto actual
+    idColegioActual = colegioId;
+    paginaActual = pagina;
+
+    // --- CAPTURAR EL VALOR ACTUAL DEL BUSCADOR ---
+    const inputPrevio = document.getElementById('buscarProceso');
+    const query = inputPrevio ? inputPrevio.value : ''; 
+
     const modalElement = document.getElementById('modalHistorial');
-    const myModal = new bootstrap.Modal(modalElement);
     const contenedor = document.getElementById('contenedorHistorial');
+    
+    let myModal = bootstrap.Modal.getInstance(modalElement);
+    if (!myModal) {
+        myModal = new bootstrap.Modal(modalElement);
+    }
 
-    // 2. Buscador a la izquierda (col-md-8) y Botón Filtro a la derecha (col-md-2)
-    contenedor.innerHTML = `
-        <div class="px-4 mt-4 mb-4">
-            <div class="row g-2 justify-content-center align-items-center">
-                <div class="col-12 col-md-8">
-                    <div class="input-group shadow-sm" style="height: 48px;">
-                        <span class="input-group-text bg-white border-end-0 text-primary px-3">
-                            <i class="bi bi-search" style="font-size: 1.1rem;"></i>
-                        </span>
-                        <input type="text" id="buscarProceso" 
-                               class="form-control border-start-0 ps-2" 
-                               placeholder="Buscar por contratista, objeto o vigencia..." 
-                               onkeyup="filtrarHistorial()"
-                               style="font-size: 0.95rem;">
+    // 2. Renderizamos la estructura base (Solo en página 1)
+    if (pagina === 1) {
+        contenedor.innerHTML = `
+            <div class="px-4 mt-4 mb-4">
+                <div class="row g-2 justify-content-center align-items-center">
+                    <div class="col-12 col-md-8">
+                        <div class="input-group shadow-sm" style="height: 48px;">
+                            <span class="input-group-text bg-white border-end-0 text-primary px-3">
+                                <i class="bi bi-search" style="font-size: 1.1rem;"></i>
+                            </span>
+                            <input type="text" id="buscarProceso" 
+                                   class="form-control border-start-0 ps-2" 
+                                   placeholder="Buscar por NIT, nombre o proceso..." 
+                                   oninput="filtrarHistorial()"
+                                   value="${query}" 
+                                   style="font-size: 0.95rem;">
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-2">
+                        <button id="btnOrden" onclick="alternarOrden()" 
+                                class="btn btn-sm btn-outline-secondary shadow-sm w-100 d-flex align-items-center justify-content-center" 
+                                style="height: 48px; font-size: 0.85rem; font-weight: 500; border-radius: 8px;">
+                            <i class="bi bi-sort-numeric-down me-1" id="iconoOrden" style="font-size: 1.1rem;"></i>
+                            <span id="textoOrden">Recientes</span>
+                        </button>
                     </div>
                 </div>
-
-                <div class="col-12 col-md-2">
-                    <button id="btnOrden" onclick="alternarOrden()" 
-                            class="btn btn-sm btn-outline-secondary shadow-sm w-100 d-flex align-items-center justify-content-center" 
-                            style="height: 38px; font-size: 0.85rem; font-weight: 500; border-radius: 8px;">
-                        <i class="bi bi-sort-numeric-down me-1" id="iconoOrden" style="font-size: 1.1rem;"></i>
-                        <span id="textoOrden">Recientes</span>
-                    </button>
+            </div>
+            
+            <div id="listaProcesosReal" class="mt-3">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted small">Cargando expedientes...</p>
                 </div>
             </div>
-        </div>
+            
+            <div id="paginacionControles" class="pb-4"></div>`;
         
-        <div id="listaProcesosReal" class="mt-3">
+        if (!modalElement.classList.contains('show')) myModal.show();
+
+        // Mantenemos el foco en el input después de renderizar
+        if (query !== '') {
+            const inputRef = document.getElementById('buscarProceso');
+            inputRef.focus();
+            inputRef.setSelectionRange(query.length, query.length);
+        }
+
+    } else {
+        document.getElementById('listaProcesosReal').innerHTML = `
             <div class="text-center py-5">
                 <div class="spinner-border text-primary" role="status"></div>
-                <p class="mt-2 text-muted small">Organizando expedientes...</p>
-            </div>
-        </div>`;
+                <p class="mt-2 text-muted small">Cargando página ${pagina}...</p>
+            </div>`;
+    }
 
-    myModal.show();
-
-    fetch(`/historial/historial_json/${colegioId}`)
+    // 3. FETCH modificado para enviar "?page=" Y "&q="
+    // Usamos encodeURIComponent para que espacios o caracteres raros no rompan la URL
+    fetch(`/historial/historial_json/${colegioId}?page=${pagina}&q=${encodeURIComponent(query)}&orden=${ordenActual}`)
         .then(response => {
             if (!response.ok) throw new Error('Error en la red');
             return response.json();
         })
         .then(data => {
-            if (!data || data.length === 0) {
+            if (!data.procesos || data.procesos.length === 0) {
                 document.getElementById('listaProcesosReal').innerHTML = `
                     <div class="text-center py-5">
                         <i class="bi bi-folder2-open display-4 text-muted opacity-50"></i>
-                        <p class="text-muted mt-3">No se encontraron procesos previos.</p>
+                        <p class="text-muted mt-3">No se encontraron resultados para "${query}".</p>
                     </div>`;
+                document.getElementById('paginacionControles').innerHTML = '';
                 return;
             }
 
-            datosHistorialCache = data;
-            // Llamamos a la función que dibuja con tu diseño original
+            datosHistorialCache = data.procesos;
             dibujarListaProcesos(datosHistorialCache);
+            renderizarPaginacion(data);
         })
         .catch(error => {
             console.error('Error:', error);
@@ -69,37 +107,35 @@ function abrirHistorial(colegioId) {
                 `<div class="alert alert-danger m-3 small">Error al cargar historial.</div>`;
         });
 }
-window.abrirHistorial = abrirHistorial;
+
 
 // Función para alternar orden y redibujar
 function alternarOrden() {
-    const btnTexto = document.getElementById('textoOrden');
-    const btnIcono = document.getElementById('iconoOrden');
-    
-    ordenDescendente = !ordenDescendente;
+    // 1. Alternamos el valor de la variable global
+    ordenActual = (ordenActual === 'desc') ? 'asc' : 'desc';
 
-    datosHistorialCache.sort((a, b) => {
-        return ordenDescendente ? (b.id - a.id) : (a.id - b.id);
-    });
-
-    if (ordenDescendente) {
-        btnTexto.innerText = "Recientes";
-        btnIcono.className = "bi bi-sort-numeric-down me-1";
-    } else {
-        btnTexto.innerText = "Antiguos";
-        btnIcono.className = "bi bi-sort-numeric-up me-1";
-    }
-
-    dibujarListaProcesos(datosHistorialCache);
+    // 2. Llamamos a abrirHistorial en la página 1 para que traiga 
+    // los datos ordenados desde la base de datos
+    abrirHistorial(idColegioActual, 1);
 }
 
-// Función diseño de tarjetas - ACTUALIZADA
+// Función diseño de tarjetas - Se mantiene igual para ser compatible con paginación
 function dibujarListaProcesos(data) {
     const listaReal = document.getElementById('listaProcesosReal');
+    
+    // Si no hay datos (por si acaso)
+    if (!data || data.length === 0) {
+        listaReal.innerHTML = `
+            <div class="text-center py-5">
+                <i class="bi bi-folder2-open display-4 text-muted opacity-50"></i>
+                <p class="text-muted mt-3">No hay registros para mostrar en esta página.</p>
+            </div>`;
+        return;
+    }
+
     let html = '<div class="list-group list-group-flush border-top">';
 
     data.forEach((proceso) => {
-        // Usamos proceso.id para que el número sea fijo y real según la base de datos
         html += `
         <div class="list-group-item list-group-item-action py-3 px-4 border-bottom">
             <div class="row align-items-center">
@@ -136,7 +172,6 @@ function dibujarListaProcesos(data) {
                                 class="btn btn-sm btn-outline-secondary px-3">
                             <i class="bi bi-eye"></i>
                         </button>
-
                     </div>
                 </div>
             </div>
@@ -147,14 +182,64 @@ function dibujarListaProcesos(data) {
     listaReal.innerHTML = html;
 }
 
+// NUEVA FUNCIÓN: Crea los botones de Anterior y Siguiente
+function renderizarPaginacion(data) {
+    const contenedorPaginacion = document.getElementById('paginacionControles');
+    
+    // Si solo hay una página, no mostramos controles
+    if (data.total_paginas <= 1) {
+        contenedorPaginacion.innerHTML = '';
+        return;
+    }
+
+    contenedorPaginacion.innerHTML = `
+        <div class="d-flex justify-content-center align-items-center mt-4">
+            <nav aria-label="Navegación de historial">
+                <ul class="pagination pagination-sm mb-0 shadow-sm">
+                    <li class="page-item ${!data.tiene_anterior ? 'disabled' : ''}">
+                        <a class="page-link py-2 px-3" href="javascript:void(0)" 
+                           onclick="${data.tiene_anterior ? `abrirHistorial(${idColegioActual}, ${data.pagina_actual - 1})` : ''}">
+                            <i class="bi bi-chevron-left me-1"></i> Anterior
+                        </a>
+                    </li>
+
+                    <li class="page-item disabled">
+                        <span class="page-link bg-white text-dark fw-bold py-2 px-3">
+                            Página ${data.pagina_actual} de ${data.total_paginas}
+                        </span>
+                    </li>
+
+                    <li class="page-item ${!data.tiene_siguiente ? 'disabled' : ''}">
+                        <a class="page-link py-2 px-3" href="javascript:void(0)" 
+                           onclick="${data.tiene_siguiente ? `abrirHistorial(${idColegioActual}, ${data.pagina_actual + 1})` : ''}">
+                            Siguiente <i class="bi bi-chevron-right ms-1"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        <div class="text-center mt-2">
+            <small class="text-muted">Total de registros: ${data.total_registros}</small>
+        </div>
+    `;
+}
+
 // Las demás funciones (filtrar, detalle, descarga) se mantienen igual
+let timerBusquedaHistorial; // Variable para el debounce
+
 function filtrarHistorial() {
-    let input = document.getElementById('buscarProceso').value.toLowerCase();
-    let items = document.querySelectorAll('#listaProcesosReal .list-group-item');
-    items.forEach(item => {
-        let texto = item.innerText.toLowerCase();
-        item.style.display = texto.includes(input) ? "" : "none";
-    });
+    const input = document.getElementById('buscarProceso');
+    const query = input.value.trim();
+
+    // Limpiamos el timer anterior
+    clearTimeout(timerBusquedaHistorial);
+
+    // Esperamos 400ms antes de disparar la búsqueda al servidor
+    timerBusquedaHistorial = setTimeout(() => {
+        console.log("Buscando en historial servidor:", query);
+        // Llamamos a la función principal siempre a la página 1
+        abrirHistorial(idColegioActual, 1);
+    }, 400);
 }
 
 function verDetalleProceso(procesoId) {
