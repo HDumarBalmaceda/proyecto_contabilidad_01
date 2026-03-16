@@ -46,8 +46,7 @@
 </div>
 
     <div class="card shadow-sm border-0">
-    <div class="card-body p-0">
-        <div class="table-responsive">
+    <div class="card-body"> <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-dark">
                     <tr>
@@ -58,75 +57,12 @@
                         <th class="text-center">Acciones</th>
                     </tr>
                 </thead>
-                <tbody>
-                    {% for u in usuarios %}
-                    <tr>
-                        <td class="ps-4 text-muted">{{ u.id }}</td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px; border: 1px solid #dee2e6;">
-                                    <i class="bi bi-person-fill text-primary fs-5"></i>
-                                </div>
-                                <div>
-                                    <span class="fw-bold d-block">{{ u.nombre_completo if u.nombre_completo else u.username | capitalize }}</span>
-                                    <small class="text-muted">Username: {{ u.username }}</small>
-                                </div>
-                            </div>
-                        </td>
-                        <td>
-                            {% if u.rol == 'admin' %}
-                                <span class="badge bg-danger text-white px-3">
-                                    <i class="bi bi-shield-lock me-1"></i> Administrador
-                                </span>
-                            {% else %}
-                                <span class="badge bg-info text-dark px-3">
-                                    <i class="bi bi-person-badge me-1"></i> Contador
-                                </span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="small">
-                                <div class="mb-1">
-                                    <i class="bi bi-envelope-fill text-secondary me-1"></i> 
-                                    {{ u.email if u.email else '<span class="text-muted italic">No registrado</span>' | safe }}
-                                </div>
-                                <div>
-                                    <i class="bi bi-telephone-fill text-secondary me-1"></i> 
-                                    {{ u.telefono if u.telefono else '<span class="text-muted italic">Sin teléfono</span>' | safe }}
-                                </div>
-                            </div>
-                        </td>
-                        <td class="text-center">
-                            <div class="btn-group">
-                                <button type="button" 
-                                     class="btn btn-sm btn-outline-primary btn-editar-usuario" 
-                                     data-id="{{ u.id }}" 
-                                     data-username="{{ u.username }}"
-                                     data-nombre="{{ u.nombre_completo }}"
-                                     data-email="{{ u.email }}"
-                                     data-telefono="{{ u.telefono or '' }}"
-                                     data-rol="{{ u.rol }}"
-                                     title="Editar Usuario">
-                                            <i class="bi bi-pencil-square"></i>
-                                </button>
-                                <button type="button" 
-                                class="btn btn-sm btn-outline-danger btn-eliminar-usuario" 
-                                data-id="{{ u.id }}" 
-                                data-nombre="{{ u.nombre_completo if u.nombre_completo else u.username }}"
-                                data-url="{{ url_for('usuarios.eliminar_usuario', id=u.id) }}"
-                                title="Eliminar Usuario">
-                                     <i class="bi bi-trash3-fill"></i>
-                                 </button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
+                <tbody id="tablaUsuariosBody">
+                    </tbody>
             </table>
-        </div>
+        </div> <div id="controlesPaginacion" class="d-flex justify-content-between align-items-center mt-4"></div>
     </div>
 </div>
-
 {% include "usuarios_admin/_modal_crear_usuario.html" %}
 
 {% endblock %} {% block scripts %}

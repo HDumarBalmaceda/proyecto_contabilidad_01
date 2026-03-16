@@ -1,7 +1,8 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, session 
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session, jsonify
 from flask_login import login_required, current_user
-from app.modelos.models import Usuario  # Importante para la tabla de usuarios
+from app.modelos.models import Usuario  
 from app import db
+from sqlalchemy import or_
 
 usuarios_bp = Blueprint('usuarios', __name__)
 
@@ -81,18 +82,78 @@ def crear_usuario():
     return redirect(url_for('usuarios.lista_usuarios'))
 
 
+# 1. La ruta que carga la página (El cascarón)
 @usuarios_bp.route('/gestion-usuarios')
 @login_required
 def lista_usuarios():
-    # Seguridad: solo el admin entra aquí
     if current_user.rol != 'admin':
         return redirect(url_for('colegios.mostrar_colegios'))
-    
-    # Obtenemos todos los usuarios para mostrarlos en la nueva vista
-    from app.modelos.models import Usuario
-    todos_los_usuarios = Usuario.query.all()
-    
-    return render_template('usuarios_admin/usuarios.html', usuarios=todos_los_usuarios)
+    # Ya no enviamos "todos_los_usuarios", el JS se encargará de pedirlos
+    return render_template('usuarios_admin/usuarios.html')
+
+
+@usuarios_bp.route('/usuarios_json')
+@login_required
+def usuarios_json():
+    # 1. SEGURIDAD
+    if current_user.rol != 'admin':
+        return jsonify({"error": "No autorizado"}), 403
+
+    try:
+        # 2. PARÁMETROS
+        page = request.args.get('page', 1, type=int)
+        search_query = request.args.get('q', '').strip()
+        per_page = 10 
+
+        # 3. CONSULTA BASE
+        query = Usuario.query
+
+        # 4. FILTRO DE BÚSQUEDA
+        if search_query:
+            search_filter = f"%{search_query}%"
+            # Ajusta estos nombres (username, email, nombre_completo) a tus columnas reales en la DB
+            query = query.filter(
+                or_(
+                    Usuario.username.ilike(search_filter),
+                    Usuario.email.ilike(search_filter),
+                    Usuario.rol.ilike(search_filter),
+                    Usuario.nombre_completo.ilike(search_filter),
+                    Usuario.telefono.ilike(search_filter)
+                )
+            )
+
+        # 5. PAGINACIÓN
+        pagination = query.order_by(Usuario.id.desc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+
+        # 6. CONSTRUCCIÓN DE LA RESPUESTA JSON
+        usuarios_data = []
+        for u in pagination.items:
+            usuarios_data.append({
+                'id': u.id,
+                'username': u.username,
+                # Usamos getattr por seguridad por si la columna no existe en el modelo
+                'nombre_completo': getattr(u, 'nombre_completo', None),
+                'email': u.email,
+                'rol': u.rol,
+                'telefono': getattr(u, 'telefono', None),
+                'fecha_registro': u.fecha_registro.strftime('%d/%m/%Y') if hasattr(u, 'fecha_registro') and u.fecha_registro else "N/A"
+            })
+
+        return jsonify({
+            'usuarios': usuarios_data,
+            'total_paginas': pagination.pages,
+            'pagina_actual': pagination.page,
+            'total_registros': pagination.total,
+            'tiene_siguiente': pagination.has_next,
+            'tiene_anterior': pagination.has_prev
+        })
+
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc()) # Esto imprimirá el error real en tu consola de Flask
+        return jsonify({"error": str(e)}), 500
 
 
 @usuarios_bp.route('/usuarios/eliminar/<int:id>', methods=['POST'])

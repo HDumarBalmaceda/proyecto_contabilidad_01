@@ -11,8 +11,8 @@ def crear_primer_admin():
         if not admin_existente:
             print("Creando usuario administrador...")
             # Aquí defines tu usuario y tu clave
-            nuevo_admin = Usuario(username='admin@hameth', rol='admin')
-            nuevo_admin.set_password('HdumarB3*') # <--- Cambia esta clave por una segura
+            nuevo_admin = Usuario(username='admin@hamet', rol='admin')
+            nuevo_admin.set_password('admin') # <--- Cambia esta clave por una segura
             
             db.session.add(nuevo_admin)
             db.session.commit()
