@@ -89,29 +89,6 @@
                                 <td>{{ p.movil }}</td>
                                 <td>{{ p.correo_electronico }}</td>
                                 <td class="text-center">
-                                    <button class="btn btn-sm btn-outline-warning rounded-circle me-1 btn-editar" 
-                                       title="Editar" 
-                                       data-bs-toggle="modal" 
-                                       data-bs-target="#crearProveedorModal"
-                                       data-id="{{ p.id }}"
-                                       data-tipo_tercero="{{ p.tipo_tercero }}"
-                                       data-documento="{{ p.documento }}"
-                                       data-dv="{{ p.dv }}"
-                                       data-razon_social="{{ p.razon_social }}"
-                                       data-primer_nombre="{{ p.primer_nombre }}"
-                                       data-segundo_nombre="{{ p.segundo_nombre }}"
-                                       data-primer_apellido="{{ p.primer_apellido }}"
-                                       data-segundo_apellido="{{ p.segundo_apellido }}"
-                                       data-direccion="{{ p.direccion }}"
-                                       data-departamento="{{ p.departamento }}"
-                                       data-ciudad="{{ p.ciudad }}"
-                                       data-correo="{{ p.correo_electronico }}"
-                                       data-movil="{{ p.movil }}"
-                                       data-renta="{{ p.renta }}"
-                                       data-banco="{{ p.banco }}"
-                                       data-no_cuenta="{{ p.no_cuenta }}">
-                                        <i class="bi bi-pencil"></i>
-                                  </button>
                                   
                                 <button class="btn btn-sm btn-info text-white" 
                                  data-bs-toggle="modal" 
@@ -135,12 +112,6 @@
                                <i class="bi bi-eye-fill"></i>
                                    </button>
 
-                                    <a href="#" 
-                                        class="btn btn-sm btn-outline-danger rounded-circle btn-eliminar" 
-                                           data-url="{{ url_for('proveedores.eliminar_proveedor', id=p.id) }}"
-                                           data-nombre="{% if p.tipo_tercero == 'Persona Jurídica' %}{{ p.razon_social }}{% else %}{{ p.primer_nombre }} {{ p.primer_apellido }}{% endif %}">
-                                            <i class="bi bi-trash"></i>
-                                    </a>
                                 </td>
                             </tr>
                             {% else %}

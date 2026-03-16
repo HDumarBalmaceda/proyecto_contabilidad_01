@@ -25,7 +25,7 @@ class Usuario(db.Model, UserMixin):
     telefono = db.Column(db.String(20), nullable=True)
     
     # Relaciones
-    proveedores = db.relationship('Proveedor', backref='creador_rel', lazy=True, cascade="all, delete-orphan")
+    proveedores = db.relationship('Proveedor', backref='creador_rel', lazy=True)
     colegios = db.relationship('Colegio', backref='contador', lazy=True)
 
     def set_password(self, password):
@@ -40,9 +40,9 @@ class Usuario(db.Model, UserMixin):
 class Proveedor(db.Model):
     __tablename__ = 'proveedores'
     id = db.Column(db.Integer, primary_key=True)
-    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False, index=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     tipo_tercero = db.Column(db.String(50), nullable=False)
-    documento = db.Column(db.String(20),  nullable=False, index=True)
+    documento = db.Column(db.String(20),  nullable=False, index=True, unique=True)
     dv = db.Column(db.String(1))
     renta = db.Column(db.String(50))
     primer_nombre = db.Column(db.String(100))

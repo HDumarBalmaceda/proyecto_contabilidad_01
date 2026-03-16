@@ -291,30 +291,30 @@ def vincular_proveedor(colegio_id):
     try:
         colegio = Colegio.query.get_or_404(colegio_id)
         
-        # Seguridad 1: Solo puedes vincular si eres admin o el colegio te pertenece
+        # Seguridad 1: Se mantiene (Solo el dueño del colegio o admin)
         if current_user.rol != 'admin' and colegio.usuario_id != current_user.id:
-            return jsonify({"status": "error", "message": "Acceso no autorizado al colegio"}), 403
+            return jsonify({"status": "error", "message": "Acceso no autorizado"}), 403
 
         proveedor_id = request.form.get('proveedor_id')
-        if not proveedor_id:
-            return jsonify({"status": "error", "message": "No seleccionaste ningún proveedor"}), 400
-            
-        # Seguridad 2: Buscamos el proveedor pero FILTRANDO por el dueño actual
-        # Así, aunque envíen un ID de otro contador, la consulta dará 404
-        if current_user.rol == 'admin':
-            proveedor = Proveedor.query.get(proveedor_id)
-        else:
-            proveedor = Proveedor.query.filter_by(id=proveedor_id, usuario_id=current_user.id).first()
+        
+        # CAMBIO CLAVE: Buscamos el proveedor en TODA la base de datos
+        # Ya no filtramos por usuario_id porque el registro es GENERAL
+        proveedor = Proveedor.query.get(proveedor_id)
 
         if not proveedor:
-            return jsonify({"status": "error", "message": "El proveedor no existe o no te pertenece"}), 404
+            return jsonify({"status": "error", "message": "El proveedor no existe en el sistema"}), 404
         
+        # La vinculación sigue igual (es perfecta)
         if proveedor not in colegio.proveedores:
             colegio.proveedores.append(proveedor)
             db.session.commit()
-            return jsonify({"status": "success", "message": "Proveedor vinculado"}), 200
+            return jsonify({"status": "success", "message": "Proveedor vinculado con éxito"}), 200
             
-        return jsonify({"status": "error", "message": "El proveedor ya está vinculado"}), 400
+        return jsonify({"status": "info", "message": "Este proveedor ya estaba vinculado a este colegio"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
 
     except Exception as e:
         db.session.rollback()
