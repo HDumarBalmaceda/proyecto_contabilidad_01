@@ -1,115 +1,169 @@
 /**
- * UNIFICADO: Lógica de confirmación para eliminar
+ * FUNCIONES DE CARGA Y TABLA
  */
-console.log("cargando js ");
+async function cargarProveedores(page = 1) {
+    const query = document.getElementById('buscarProveedor')?.value.trim() || '';
+    const contenedor = document.getElementById('tablaProveedoresBody');
+    
+    contenedor.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">
+        <div class="spinner-border spinner-border-sm text-primary"></div> Cargando...
+    </td></tr>`;
 
-document.addEventListener('click', function(e) {
-    const boton = e.target.closest('.btn-eliminar');
-    if (boton) {
-        e.preventDefault();
-        const url = boton.dataset.url;
-        const nombre = boton.dataset.nombre;
+    try {
+        const response = await fetch(`/proveedores/proveedores_json_paginado?page=${page}&q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+        
+        renderizarTablaLocal(data.proveedores);
+        renderizarPaginacionLocal(data); // Usamos la función que está aquí abajo
 
-        Swal.fire({
-            title: '¿Estás seguro?',
-            text: `Vas a eliminar a: ${nombre}. Esta acción no se puede deshacer.`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Sí, eliminar',
-            cancelButtonText: 'Cancelar',
-            reverseButtons: true
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.location.href = url;
+    } catch (error) {
+        console.error("Error:", error);
+        contenedor.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Error de conexión</td></tr>`;
+    }
+}
+
+function renderizarTablaLocal(proveedores) {
+    const tbody = document.getElementById('tablaProveedoresBody');
+    const rol = document.getElementById('rol-metadata')?.dataset.rol || 'user';
+    tbody.innerHTML = '';
+
+    if (!proveedores || proveedores.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">No hay resultados</td></tr>`;
+        return;
+    }
+
+    proveedores.forEach(p => {
+        const nombre = p.tipo_tercero === 'Persona Jurídica' ? p.razon_social : `${p.primer_nombre} ${p.primer_apellido}`;
+        const dataAttrs = Object.entries(p).map(([k, v]) => `data-${k}="${v || ''}"`).join(' ');
+
+        let botones = `<button class="btn btn-sm btn-info text-white" data-bs-toggle="modal" data-bs-target="#verProveedorModal" ${dataAttrs}><i class="bi bi-eye-fill"></i></button>`;
+
+        if (rol === 'admin') {
+            botones += `
+                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#crearProveedorModal" ${dataAttrs}><i class="bi bi-pencil-square"></i></button>
+                <button class="btn btn-sm btn-outline-danger btn-eliminar" data-url="/proveedores/eliminar/${p.id}" data-nombre="${nombre}"><i class="bi bi-trash3-fill"></i></button>
+            `;
+        }
+
+        tbody.insertAdjacentHTML('beforeend', `
+            <tr>
+                <td class="ps-4 fw-bold">${nombre}</td>
+                <td>${p.documento}${p.dv ? '-' + p.dv : ''}</td>
+                <td>${p.movil || '-'}</td>
+                <td>${p.correo || p.correo_electronico || '-'}</td>
+                <td class="text-center"><div class="btn-group gap-1">${botones}</div></td>
+            </tr>`);
+    });
+}
+
+// ESTA ES LA FUNCIÓN QUE NO QUERÍA SALIR, AHORA ESTÁ AQUÍ ATADA:
+function renderizarPaginacionLocal(data) {
+    const nav = document.getElementById('paginacionProveedores');
+    if (!nav) return;
+
+    if (data.total_paginas <= 1) {
+        nav.innerHTML = `<div class="text-muted small text-center">Total: ${data.total_registros} registros</div>`;
+        return;
+    }
+
+    nav.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center w-100">
+            <small class="text-muted">Página ${data.pagina_actual} de ${data.total_paginas}</small>
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item ${!data.tiene_anterior ? 'disabled' : ''}">
+                    <button class="page-link" onclick="cargarProveedores(${data.pagina_actual - 1})">Anterior</button>
+                </li>
+                <li class="page-item active"><span class="page-link">${data.pagina_actual}</span></li>
+                <li class="page-item ${!data.tiene_siguiente ? 'disabled' : ''}">
+                    <button class="page-link" onclick="cargarProveedores(${data.pagina_actual + 1})">Siguiente</button>
+                </li>
+            </ul>
+        </div>`;
+}
+
+/**
+ * INICIALIZACIÓN
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    cargarProveedores(1);
+    
+    let timer;
+    document.getElementById('buscarProveedor')?.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => cargarProveedores(1), 400);
+    });
+
+    // Lógica de Modales (Mantenemos la misma que ya tenías)
+    const modalVer = document.getElementById('verProveedorModal');
+    if (modalVer) {
+        modalVer.addEventListener('show.bs.modal', function(e) {
+            const btn = e.relatedTarget;
+            const get = (a) => btn.getAttribute(a) || '---';
+            document.getElementById('view_tipo_tercero').textContent = get('data-tipo_tercero');
+            document.getElementById('view_documento_full').textContent = `${get('data-documento')} - ${get('data-dv')}`;
+            document.getElementById('view_razon_social').textContent = get('data-razon_social');
+            document.getElementById('view_p_nombre').textContent = get('data-primer_nombre');
+            document.getElementById('view_s_nombre').textContent = get('data-segundo_nombre');
+            document.getElementById('view_p_apellido').textContent = get('data-primer_apellido');
+            document.getElementById('view_s_apellido').textContent = get('data-segundo_apellido');
+            document.getElementById('view_direccion').textContent = get('data-direccion');
+            document.getElementById('view_movil').textContent = get('data-movil');
+            document.getElementById('view_correo').textContent = get('data-correo') || get('data-correo_electronico');
+            document.getElementById('view_banco').textContent = get('data-banco');
+            document.getElementById('view_cuenta').textContent = get('data-no_cuenta');
+            document.getElementById('view_renta').textContent = get('data-renta');
+            document.getElementById('view_ubicacion_full').textContent = `${get('data-ciudad')} / ${get('data-departamento')}`;
+        });
+    }
+
+    const modalCrear = document.getElementById('crearProveedorModal');
+    if (modalCrear) {
+        modalCrear.addEventListener('show.bs.modal', function(e) {
+            const btn = e.relatedTarget;
+            const id = btn.getAttribute('data-id');
+            const form = document.getElementById('formProveedor');
+            if (id) {
+                form.action = `/proveedores/editar/${id}`;
+                const set = (idEl, attr) => {
+                    const el = document.getElementById(idEl);
+                    if(el) el.value = btn.getAttribute(attr) || '';
+                };
+                set('tipo_tercero', 'data-tipo_tercero');
+                set('documento', 'data-documento');
+                set('dv', 'data-dv');
+                set('razon_social', 'data-razon_social');
+                set('primer_nombre', 'data-primer_nombre');
+                set('segundo_nombre', 'data-segundo_nombre');
+                set('primer_apellido', 'data-primer_apellido');
+                set('segundo_apellido', 'data-segundo_apellido');
+                set('direccion', 'data-direccion');
+                set('departamento', 'data-departamento');
+                set('ciudad', 'data-ciudad');
+                set('correo_electronico', 'data-correo_electronico');
+                set('movil', 'data-movil');
+                set('renta', 'data-renta');
+                set('banco', 'data-banco');
+                set('no_cuenta', 'data-no_cuenta');
+                document.getElementById('tipo_tercero').dispatchEvent(new Event('change'));
+            } else {
+                form.reset();
+                form.action = "/proveedores/"; // Ajusta a tu URL de crear
+                document.getElementById('tipo_tercero').dispatchEvent(new Event('change'));
             }
         });
     }
 });
 
-/**
- * UNIFICADO: Manejo de Modales (Editar y Ver)
- */
-document.addEventListener('DOMContentLoaded', function() {
-    
-    // --- 1. MODAL CREAR/EDITAR ---
-    const modalCrear = document.getElementById('crearProveedorModal');
-    if (modalCrear) {
-        const form = document.getElementById('formProveedor');
-        const modalTitle = modalCrear.querySelector('.modal-title');
-        const URL_CREAR_BASE = form.getAttribute('action');
-
-        modalCrear.addEventListener('show.bs.modal', function(event) {
-            const button = event.relatedTarget;
-            const id = button.getAttribute('data-id');
-
-            const setVal = (htmlId, attrName) => {
-                const el = document.getElementById(htmlId);
-                if (el) el.value = button.getAttribute(attrName) || '';
-            };
-
-            if (id) {
-                modalTitle.textContent = 'Editar Información del Proveedor';
-                form.action = `/proveedores/editar/${id}`;
-                
-                // Mapeo exacto con los IDs de tu HTML
-                setVal('tipo_tercero', 'data-tipo_tercero');
-                setVal('documento', 'data-documento');
-                setVal('dv', 'data-dv');
-                setVal('razon_social', 'data-razon_social');
-                setVal('primer_nombre', 'data-primer_nombre');
-                setVal('segundo_nombre', 'data-segundo_nombre');
-                setVal('primer_apellido', 'data-primer_apellido');
-                setVal('segundo_apellido', 'data-segundo_apellido');
-                setVal('direccion', 'data-direccion');
-                setVal('departamento', 'data-departamento');
-                setVal('ciudad', 'data-ciudad');
-                setVal('correo_electronico', 'data-correo'); // Atributo es data-correo
-                setVal('movil', 'data-movil');
-                setVal('renta', 'data-renta');
-                setVal('banco', 'data-banco');
-                setVal('no_cuenta', 'data-no_cuenta');
-
-                // Disparar cambio para ocultar/mostrar campos según tipo
-                document.getElementById('tipo_tercero').dispatchEvent(new Event('change'));
-            } else {
-                modalTitle.textContent = 'Registrar Nuevo Proveedor';
-                form.action = URL_CREAR_BASE; 
-                form.reset();
-                document.getElementById('tipo_tercero').dispatchEvent(new Event('change'));
-            }
-        });
-    }
-
-    // --- 2. MODAL VER DETALLES ---
-    const modalVer = document.getElementById('verProveedorModal');
-    if (modalVer) {
-        modalVer.addEventListener('show.bs.modal', function(event) {
-            const btn = event.relatedTarget;
-            const get = (attr) => btn.getAttribute(attr) || '---';
-
-            // Identificación
-            document.getElementById('view_tipo_tercero').textContent = get('data-tipo_tercero');
-            document.getElementById('view_documento_full').textContent = `${get('data-documento')} - ${get('data-dv')}`;
-            document.getElementById('view_razon_social').textContent = get('data-razon_social');
-
-            // Nombres
-            document.getElementById('view_p_nombre').textContent = get('data-primer_nombre');
-            document.getElementById('view_s_nombre').textContent = get('data-segundo_nombre');
-            document.getElementById('view_p_apellido').textContent = get('data-primer_apellido');
-            document.getElementById('view_s_apellido').textContent = get('data-segundo_apellido');
-
-            // Ubicación y contacto
-            document.getElementById('view_direccion').textContent = get('data-direccion');
-            document.getElementById('view_ubicacion_full').textContent = `${get('data-ciudad')} / ${get('data-departamento')}`;
-            document.getElementById('view_movil').textContent = get('data-movil');
-            document.getElementById('view_correo').textContent = get('data-correo');
-            document.getElementById('view_renta').textContent = get('data-renta');
-
-            // Banco
-            document.getElementById('view_banco').textContent = get('data-banco');
-            document.getElementById('view_cuenta').textContent = get('data-no_cuenta');
-        });
+// Eliminar
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.btn-eliminar');
+    if (btn) {
+        Swal.fire({
+            title: '¿Eliminar?',
+            text: `Vas a borrar a ${btn.dataset.nombre}`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, borrar'
+        }).then(r => { if(r.isConfirmed) window.location.href = btn.dataset.url; });
     }
 });

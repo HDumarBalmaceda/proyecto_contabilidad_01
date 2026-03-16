@@ -3,6 +3,8 @@
 {% block title %}Gestión de Proveedores{% endblock %}
 
 {% block content %}
+<div id="rol-metadata" data-rol="{{ current_user.rol }}"></div>
+
 <div class="container-fluid mt-4">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4">
         <h2 class="text-primary fw-bold mb-3 mb-md-0">
@@ -11,16 +13,16 @@
 
         <div class="d-flex align-items-center gap-2">
             <a href="{{ url_for('usuarios.panel_admin') }}" class="btn btn-outline-secondary me-2">
-            <i class="bi bi-arrow-left"></i> Volver
-        </a>
+                <i class="bi bi-arrow-left"></i> Volver
+            </a>
         
-             <div class="input-group me-3" style="width: 300px;">
-            <span class="input-group-text bg-white border-end-0">
-                <i class="bi bi-search text-muted"></i>
-            </span>
-            <input type="text" id="buscarProveedor" class="form-control border-start-0 ps-0" 
-                   placeholder="Buscar por nombre, nit o email...">
-        </div>
+            <div class="input-group me-3" style="width: 300px;">
+                <span class="input-group-text bg-white border-end-0">
+                    <i class="bi bi-search text-muted"></i>
+                </span>
+                <input type="text" id="buscarProveedor" class="form-control border-start-0 ps-0" 
+                       placeholder="Buscar por nombre, nit o email...">
+            </div>
 
             <button class="btn btn-success shadow-sm d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#crearProveedorModal">
                 <i class="bi bi-person-plus-fill me-2"></i> Registrar Proveedor
@@ -49,77 +51,13 @@
                             <th class="text-center">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        {% for p in proveedores %}
-                        <tr>
-                            <td class="ps-4 fw-bold text-dark">
-                                {% if p.tipo_tercero == 'Persona Jurídica' %}
-                                    {{ p.razon_social }}
-                                {% else %}
-                                    {{ p.primer_nombre }} {{ p.primer_apellido }}
-                                {% endif %}
-                            </td>
-                            <td>{{ p.documento }}{% if p.dv %}-{{ p.dv }}{% endif %}</td>
-                            <td>{{ p.movil or '-' }}</td>
-                            <td>{{ p.correo_electronico or '-' }}</td>
-                            <td class="text-center">
-                                <div class="btn-group" role="group">
-                                    <button class="btn btn-sm btn-info text-white" 
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#verProveedorModal"
-                                            title="Ver Detalles"
-                                            {% for key, value in p.__dict__.items() if not key.startswith('_') %}
-                                            data-{{key}}="{{value}}"
-                                            {% endfor %}>
-                                        <i class="bi bi-eye-fill"></i>
-                                    </button>
-
-                                    {% if current_user.rol == 'admin' %}
-                                    <button class="btn btn-sm btn-outline-primary btn-editar" 
-                                            title="Editar Proveedor" 
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#crearProveedorModal"
-                                            data-id="{{ p.id }}"
-                                            data-tipo_tercero="{{ p.tipo_tercero }}"
-                                            data-documento="{{ p.documento }}"
-                                            data-dv="{{ p.dv }}"
-                                            data-razon_social="{{ p.razon_social }}"
-                                            data-primer_nombre="{{ p.primer_nombre }}"
-                                            data-segundo_nombre="{{ p.segundo_nombre }}"
-                                            data-primer_apellido="{{ p.primer_apellido }}"
-                                            data-segundo_apellido="{{ p.segundo_apellido }}"
-                                            data-direccion="{{ p.direccion }}"
-                                            data-departamento="{{ p.departamento }}"
-                                            data-ciudad="{{ p.ciudad }}"
-                                            data-correo="{{ p.correo_electronico }}"
-                                            data-movil="{{ p.movil }}"
-                                            data-renta="{{ p.renta }}"
-                                            data-banco="{{ p.banco }}"
-                                            data-no_cuenta="{{ p.no_cuenta }}">
-                                        <i class="bi bi-pencil-square"></i>
-                                    </button>
-
-                                    <a  class="btn btn-sm btn-outline-danger btn-eliminar" 
-                                       data-url="{{ url_for('proveedores.eliminar_proveedor', id=p.id) }}"
-                                       data-nombre="{% if p.tipo_tercero == 'Persona Jurídica' %}{{ p.razon_social }}{% else %}{{ p.primer_nombre }} {{ p.primer_apellido }}{% endif %}"
-                                       title="Eliminar permanentemente">
-                                        <i class="bi bi-trash3-fill"></i>
-                                    </a>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="5" class="text-center py-5 text-muted">
-                                <i class="bi bi-info-circle fs-2 d-block mb-2"></i>
-                                No hay proveedores registrados en el sistema.
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
+                    <tbody id="tablaProveedoresBody">
+                        </tbody>
                 </table>
-            </div>
+            </div> 
+            
+            <div id="paginacionProveedores" class="card-footer bg-white border-top px-4 py-3">
+                </div>
         </div>
     </div>
 </div>
@@ -129,6 +67,7 @@
 
 {% block scripts %}
     <script src="{{ url_for('static', filename='js/proveedores/form_proveedores.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/proveedores/busqueda_proveedores.js') }}"></script>
+    
     <script src="{{ url_for('static', filename='js/admin_proveedor/acciones_proveedores.js') }}?v={{ range(1, 999) | random }}"></script>
-{% endblock %}
+
+    {% endblock %}
