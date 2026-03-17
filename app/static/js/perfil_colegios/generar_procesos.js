@@ -161,15 +161,19 @@ async function procesarExpediente() {
     if (!formulario) return;
 
     // 1. Obtener Colegio ID
-    const colegioId = obtenerColegioId();
+    // MEJORA: Si obtenerColegioId() falla, usamos la global idColegioActual
+    const colegioId = obtenerColegioId() || idColegioActual;
+
+    if (!colegioId || colegioId === "null") {
+        Swal.fire('Error', 'No se pudo determinar el ID del colegio.', 'error');
+        return;
+    }
 
     // 2. Recolectar datos con LIMPIEZA DE NULOS
     const formData = new FormData(formulario);
     const datosParaEnviar = {};
 
     for (let [key, value] of formData.entries()) {
-        // Si el valor está vacío, enviamos null en lugar de ""
-        // Esto evita que el backend falle al intentar procesar fechas o IDs vacíos
         if (value === "" || value === undefined) {
             datosParaEnviar[key] = null;
         } else {
@@ -178,17 +182,13 @@ async function procesarExpediente() {
     }
 
     // --- CORRECCIONES ESTRUCTURALES ---
-
-    // A. Vigencia como número
     const inputVigencia = document.getElementById('modalVigenciaInput');
     datosParaEnviar.vigencia = inputVigencia ? parseInt(inputVigencia.value) : 2026;
 
-    // B. Asegurar proveedor_id (Clave para la base de datos)
     if (datosParaEnviar.prov_principal) {
         datosParaEnviar.proveedor_id = datosParaEnviar.prov_principal;
     }
 
-    // C. ID de edición (Aseguramos que sea número o null real)
     const idEdicion = document.getElementById('proceso_id_hidden')?.value;
     datosParaEnviar.proceso_id = (idEdicion && idEdicion !== "") ? parseInt(idEdicion) : null;
 
@@ -196,18 +196,13 @@ async function procesarExpediente() {
     const items = [];
     document.querySelectorAll('#cuerpoTablaItems tr').forEach(fila => {
         const descInput = fila.querySelector('[name="desc[]"]');
-        
         if (descInput && descInput.value.trim() !== "") {
-            const cant = parseFloat(fila.querySelector('[name="cant[]"]').value) || 0;
-            const vUnit = parseFloat(fila.querySelector('[name="v_unit[]"]').value) || 0;
-            const vTotal = parseFloat(fila.querySelector('[name="v_total[]"]').value) || 0;
-
             items.push({
-                cantidad: cant,
+                cantidad: parseFloat(fila.querySelector('[name="cant[]"]').value) || 0,
                 codigo_clasificador: fila.querySelector('[name="cod_clasificador[]"]').value || null, 
                 descripcion: descInput.value.trim(),
-                v_unitario: vUnit,
-                v_total: vTotal
+                v_unitario: parseFloat(fila.querySelector('[name="v_unit[]"]').value) || 0,
+                v_total: parseFloat(fila.querySelector('[name="v_total[]"]').value) || 0
             });
         }
     });
@@ -225,14 +220,15 @@ async function procesarExpediente() {
         return;
     }
 
-    // 5. Envío según el caso
+    // 5. ENVÍO UNIFICADO (Aquí está la magia)
     console.log("Datos finales a enviar:", datosParaEnviar); 
 
-    if (datosParaEnviar.proceso_id) {
-        actualizarProcesoExistente(datosParaEnviar);
-    } else {
-        abrirOpcionesDescarga(datosParaEnviar, colegioId);
-    }
+    // Determinamos si es nuevo o edición
+    const esNuevo = !datosParaEnviar.proceso_id;
+
+    // LLAMAMOS A LA FUNCIÓN DE editar_historial.js
+    // Esta se encarga del fetch y de abrir la descarga si es nuevo
+    guardarProcesoEnBaseDeDatos(datosParaEnviar, colegioId, esNuevo);
 }
 /**
  * LÓGICA PARA EL GENERADOR DE EXPEDIENTES CONTRACTUALES

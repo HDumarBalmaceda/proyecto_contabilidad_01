@@ -146,37 +146,9 @@ function agregarFilaConDatos(item) {
     
 }
 
-async function procesarExpediente() {
-    // Asegúrate de tener disponible el idColegioActual (que guardas al abrir el historial)
-    const idProceso = document.getElementById('proceso_id_hidden').value;
-    const formulario = document.getElementById('formExpedienteCompleto');
-    
-    if (!formulario.checkValidity()) {
-        formulario.reportValidity();
-        return;
-    }
-
-    // --- CORRECCIÓN DE URL: Siempre apuntamos al colegio ---
-    const url = `/procesos/guardar_proceso/${idColegioActual}`; 
-    
-    // --- CONVERTIR FORMULARIO A JSON ---
-    const formData = new FormData(formulario);
-    const data = Object.fromEntries(formData.entries());
-    
-    // Agregar el idProceso al objeto si existe
-    data.proceso_id = idProceso || null;
-
-    // Manejar los ítems (si tu formulario tiene múltiples filas)
-    data.items = [];
-    document.querySelectorAll('#cuerpoTablaItems tr').forEach(tr => {
-        data.items.push({
-            cantidad: tr.querySelector('[name="cant[]"]')?.value,
-            codigo_clasificador: tr.querySelector('[name="cod_clasificador[]"]')?.value,
-            descripcion: tr.querySelector('[name="desc[]"]')?.value,
-            v_unitario: tr.querySelector('[name="v_unit[]"]')?.value,
-            v_total: tr.querySelector('[name="v_total[]"]')?.value
-        });
-    });
+// EN editar_historial.js
+async function guardarProcesoEnBaseDeDatos(datosParaEnviar, colegioId, esNuevo = false) {
+    const url = `/procesos/guardar_proceso/${colegioId}`;
 
     Swal.fire({
         title: 'Procesando...',
@@ -187,14 +159,11 @@ async function procesarExpediente() {
 
     try {
         const response = await fetch(url, {
-            method: 'POST', // Tu controlador de Flask solo acepta POST según el código que pasaste
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data) // Enviamos JSON puro
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datosParaEnviar)
         });
 
-        // Verificamos si la respuesta es OK antes de parsear JSON
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData.message || `Error del servidor: ${response.status}`);
@@ -203,16 +172,31 @@ async function procesarExpediente() {
         const result = await response.json();
 
         if (result.success) {
-            Swal.fire('¡Éxito!', 'El proceso se guardó correctamente.', 'success').then(() => {
-                bootstrap.Modal.getInstance(document.getElementById('modalGeneradorDocs')).hide();
-                if (typeof abrirHistorial === 'function') abrirHistorial(idColegioActual, paginaActual);
-            });
+            // SI ES NUEVO: Después de guardar, abrimos el modal de descarga con el ID real
+            if (esNuevo) {
+                Swal.close(); 
+                // Llamamos a la función de descarga del historial usando el ID que nos dio Python
+                if (typeof opcionesDescargaHistorial === 'function') {
+                    opcionesDescargaHistorial(result.proceso_id);
+                }
+            } else {
+                // SI ES EDICIÓN: Solo avisamos éxito y refrescamos historial
+                Swal.fire('¡Éxito!', 'El proceso se actualizó correctamente.', 'success').then(() => {
+                    const modal = document.getElementById('modalGeneradorDocs') || document.getElementById('modalGeneradorProceso');
+                    if (modal) bootstrap.Modal.getInstance(modal).hide();
+                    
+                    if (typeof abrirHistorial === 'function') abrirHistorial(idColegioActual, paginaActual);
+                });
+            }
         }
     } catch (error) {
         console.error("Error:", error);
         Swal.fire('Error', error.message, 'error');
     }
 }
+
+// Exponerla globalmente
+window.guardarProcesoEnBaseDeDatos = guardarProcesoEnBaseDeDatos;
 
 /**
  * Carga los proveedores de un colegio específico en los selectores del modal
