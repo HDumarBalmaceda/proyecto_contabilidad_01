@@ -79,85 +79,16 @@
                             <th class="text-center">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        {% for col in colegios %}
-                        <tr>
-                           <td class="ps-4">
-            <div class="d-flex align-items-center">
-                <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3" 
-                     style="width: 45px; height: 45px; border: 1px solid #dee2e6; overflow: hidden;">
-                    {% if col.logo_path %}
-                        <img src="{{ url_for('static', filename='uploads/' + col.logo_path) }}" 
-                             alt="Logo" style="width: 100%; height: 100%; object-fit: cover;">
-                    {% else %}
-                        <i class="fas fa-school text-primary"></i>
-                    {% endif %}
-                </div>
-                <div>
-                    <span class="fw-bold d-block text-dark">{{ col.nombre.upper() }}</span>
-                    <small class="text-muted">Rector: {{ col.rector_nombre if col.rector_nombre else 'No asignado' }}</small>
-                </div>
-            </div>
-        </td>
-        <td>
-            <span class="badge bg-light text-dark border px-3">
-                <i class="bi bi-card-text me-1 text-primary"></i> {{ col.nit }}
-            </span>
-        </td>
-        <td>
-            <div class="small">
-                <i class="bi bi-geo-alt-fill text-secondary"></i> {{ col.municipio }}
-            </div>
-        </td>
-        <td>
-            {% if col.contador %}
-                <span class="badge bg-info text-dark px-3">
-                    <i class="bi bi-person-check-fill me-1"></i> {{ col.contador.username }}
-                </span>
-            {% else %}
-                <span class="badge bg-danger text-white px-3">
-                    <i class="bi bi-person-x-fill me-1"></i> SIN ASIGNAR
-                </span>
-            {% endif %}
-        </td>
-                            <td class="text-center">
-                                <div class="btn-group">
-                                    <button class="btn btn-sm btn-outline-warning btn-editar" 
-                                             title="Editar Colegio"
-                                             data-id="{{ col.id }}" 
-                                             data-nombre="{{ col.nombre }}"
-                                             data-nit="{{ col.nit }}" 
-                                             data-direccion="{{ col.direccion }}"
-                                             data-telefono="{{ col.telefono }}" 
-                                             data-municipio="{{ col.municipio }}"
-                                             data-rector_nombre="{{ col.rector_nombre }}" 
-                                             data-rector_documento="{{ col.rector_documento }}"
-                                             data-rector_tipo_documento="{{ col.rector_tipo_documento }}"
-                                             data-logo="{{ col.logo_path if col.logo_path else '' }}"
-                                             data-firma="{{ col.firma_path if col.firma_path else '' }}">
-                                                <i class="bi bi-pencil-square"></i>
-                                    </button>
-                                    {% if current_user.rol == 'admin' %}
-                                    <button class="btn btn-sm btn-outline-danger btn-eliminar" 
-                                         title="Eliminar Colegio"
-                                         data-id="{{ col.id }}"
-                                         data-nombre="{{ col.nombre }}">
-                                      <i class="bi bi-trash3-fill"></i>
-                                    </button>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
+                    <tbody id="tablaColegiosBody">
+                        
                     </tbody>
                 </table>
-            </div>
-        </div>
-        <div class="card-footer bg-white border-0 py-3 text-end text-muted">
-            <small>Total de colegios registrados: <strong>{{ colegios|length }}</strong></small>
+            </div> <div id="paginacionColegios" class="card-footer bg-white border-top px-4 py-3">
+    </div>
         </div>
     </div>
 </div>
+<script src="{{ url_for('static', filename='js/admin_colegios/tabla_colegios.js') }}"></script>
 <script src="{{ url_for('static', filename='js/admin_colegios/admin_colegios.js') }}"></script>
 <script src="{{ url_for('static', filename='js/colegios/editar_colegios.js') }}"></script>
 {% include "colegios/_form_colegio.html" %}

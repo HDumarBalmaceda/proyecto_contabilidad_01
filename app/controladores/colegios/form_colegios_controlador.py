@@ -6,6 +6,7 @@ from app.modelos.models import Colegio, Proveedor
 from sqlalchemy.exc import IntegrityError
 from flask_login import login_required, current_user
 import traceback
+from sqlalchemy import or_
 
 # Crear blueprint para colegios
 colegios_bp = Blueprint('colegios', __name__, url_prefix='/colegios')
@@ -354,29 +355,78 @@ def desvincular_proveedor(colegio_id, proveedor_id):
 @colegios_bp.route('/admin_colegios')
 @login_required
 def vista_admin_colegios():
-    # 1. Seguridad: Solo el admin entra
     if current_user.rol != 'admin':
         return redirect(url_for('index'))
     
     from app.modelos.models import Colegio, Usuario
     
-    # 2. Obtener todos los colegios con sus relaciones
-    # Usamos .joinedload si quieres optimizar, pero .all() funciona bien para 165 registros
-    colegios = Colegio.query.order_by(Colegio.nombre.asc()).all()
-    
-    # 3. Datos para las Tarjetas de Resumen (Stats)
-    total_colegios = len(colegios)
+    # Stats (Se mantienen estáticas para las tarjetas superiores)
+    total_colegios = Colegio.query.count()
     asignados = Colegio.query.filter(Colegio.usuario_id.isnot(None)).count()
-    pendientes = total_colegios - asignados
     
-    # 4. Obtener lista de contadores para el futuro Modal de creación/edición
+    # Lista de contadores para el select del modal
     contadores = Usuario.query.filter(Usuario.rol != 'admin').all()
     
     return render_template('admin_colegios/admin_colegios.html', 
-                           colegios=colegios, 
                            stats={
                                "total": total_colegios,
                                "asignados": asignados,
-                               "pendientes": pendientes
+                               "pendientes": total_colegios - asignados
                            },
                            contadores=contadores)
+
+@colegios_bp.route('/colegios_json_paginado')
+@login_required
+def colegios_json_paginado():
+    if current_user.rol != 'admin':
+        return jsonify({"error": "No autorizado"}), 403
+
+    # 1. Parámetros
+    page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('q', '').strip()
+    per_page = 10
+
+    # 2. Query Base
+    query = Colegio.query
+
+    # 3. Filtro de búsqueda
+    if search_query:
+        sf = f"%{search_query}%"
+        query = query.filter(or_(
+            Colegio.nombre.ilike(sf),
+            Colegio.nit.ilike(sf),
+            Colegio.municipio.ilike(sf)
+        ))
+
+    # 4. Paginación
+    pagination = query.order_by(Colegio.nombre.asc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+
+    # 5. Formatear resultados
+    resultado = []
+    for col in pagination.items:
+        resultado.append({
+            "id": col.id,
+            "nombre": col.nombre.upper(),
+            "nit": col.nit,
+            "municipio": col.municipio,
+            "direccion": col.direccion,
+            "telefono": col.telefono,
+            "rector_nombre": col.rector_nombre or 'No asignado',
+            "rector_documento": col.rector_documento or '',
+            "rector_tipo_documento": col.rector_tipo_documento or '',
+            "logo_path": col.logo_path or '',
+            "firma_path": col.firma_path or '',
+            # Traemos info del contador relacionado
+            "contador_nombre": col.contador.username if col.contador else None
+        })
+
+    return jsonify({
+        "colegios": resultado,
+        "total_paginas": pagination.pages,
+        "pagina_actual": pagination.page,
+        "tiene_siguiente": pagination.has_next,
+        "tiene_anterior": pagination.has_prev,
+        "total_registros": pagination.total
+    })
