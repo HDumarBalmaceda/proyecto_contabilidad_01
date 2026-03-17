@@ -170,3 +170,39 @@ def obtener_proceso(id):
         'f_recibido': p.f_recibido.isoformat() if p.f_recibido else '',
         'items': items
     })
+
+
+@procesos_bp.route('/colegios/obtener_proveedores/<int:colegio_id>')
+@login_required
+def obtener_proveedores_colegio(colegio_id):
+    try:
+        from app.modelos.models import Colegio
+        colegio = Colegio.query.get(colegio_id)
+        
+        if not colegio:
+            return jsonify([]), 200
+            
+        data = []
+        for p in colegio.proveedores:
+            # LÓGICA DE NOMBRE BASADA EN TU MODELO:
+            if p.razon_social and p.razon_social.strip():
+                nombre_mostrar = p.razon_social
+            else:
+                # Concatenamos los nombres y apellidos disponibles
+                partes = [p.primer_nombre, p.segundo_nombre, p.primer_apellido, p.segundo_apellido]
+                # Filtramos los None o vacíos y los unimos con espacio
+                nombre_mostrar = " ".join(filter(None, partes)).strip()
+            
+            # Si después de todo sigue vacío, usamos el documento o ID como backup
+            if not nombre_mostrar:
+                nombre_mostrar = f"Proveedor {p.documento or p.id}"
+
+            data.append({
+                "id": p.id,
+                "nombre": nombre_mostrar
+            })
+            
+        return jsonify(data), 200
+    except Exception as e:
+        print(f"Error en controlador: {str(e)}")
+        return jsonify({"error": str(e)}), 500

@@ -25,7 +25,7 @@
                 </ul>
 
                 <form id="formExpedienteCompleto" class="p-4">
-                        <input type="hidden" id="colegio_id_input" value="{{ colegio.id }}">
+                        <input type="hidden" id="colegio_id_input" value="{{ colegio.id if colegio else '' }}">
                            <input type="hidden" id="modalVigenciaInput" name="vigencia">
     
                             <input type="hidden" id="proceso_id_hidden" name="proceso_id_hidden">
@@ -44,9 +44,11 @@
             <label class="small fw-bold">1. Seleccionado (Principal) *</label>
             <select class="form-select form-select-sm border-success select-proveedor mb-2" name="proveedor_id" id="prov_principal" required>
                 <option value="" disabled selected>Seleccione proveedor...</option>
-                {% for p in colegio.proveedores %}
+                {% if colegio and colegio.proveedores %}
+                      {% for p in colegio.proveedores %}
                     <option value="{{ p.id }}">{{ p.primer_nombre }} {{ p.primer_apellido }} | {{ p.razon_social or 'P. Natural' }}</option>
                 {% endfor %}
+    {% endif %}
             </select>
             <div class="alert alert-info p-1 mb-0" style="font-size: 0.7rem; border-left: 3px solid #0dcaf0;">
                 <i class="bi bi-calculator me-1"></i> El valor de este proveedor se toma del <b>Gran Total</b> de la tabla de ítems.
@@ -57,9 +59,11 @@
             <label class="small fw-bold text-muted">2. Proveedor Adicional</label>
             <select class="form-select form-select-sm select-proveedor mb-2" name="proveedor2_id" id="prov_2">
                 <option value="">(Ninguno / No aplica)</option>
-                {% for p in colegio.proveedores %}
+                {% if colegio and colegio.proveedores %}
+        {% for p in colegio.proveedores %}
                     <option value="{{ p.id }}">{{ p.primer_nombre }} {{ p.primer_apellido }} | {{ p.razon_social or 'P. Natural' }}</option>
                 {% endfor %}
+    {% endif %}
             </select>
             <div class="input-group input-group-sm">
                 <span class="input-group-text">$</span>
@@ -71,9 +75,11 @@
             <label class="small fw-bold text-muted">3. Proveedor Adicional</label>
             <select class="form-select form-select-sm select-proveedor mb-2" name="proveedor3_id" id="prov_3">
                 <option value="">(Ninguno / No aplica)</option>
-                {% for p in colegio.proveedores %}
+                {% if colegio and colegio.proveedores %}
+        {% for p in colegio.proveedores %}
                     <option value="{{ p.id }}">{{ p.primer_nombre }} {{ p.primer_apellido }} | {{ p.razon_social or 'P. Natural' }}</option>
                 {% endfor %}
+    {% endif %}
             </select>
             <div class="input-group input-group-sm">
                 <span class="input-group-text">$</span>

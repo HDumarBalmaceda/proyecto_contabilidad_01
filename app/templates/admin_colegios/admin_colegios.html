@@ -88,9 +88,14 @@
         </div>
     </div>
 </div>
-<script src="{{ url_for('static', filename='js/admin_colegios/tabla_colegios.js') }}"></script>
-<script src="{{ url_for('static', filename='js/admin_colegios/admin_colegios.js') }}"></script>
 <script src="{{ url_for('static', filename='js/colegios/editar_colegios.js') }}"></script>
+<script src="{{ url_for('static', filename='js/admin_colegios/admin_colegios.js') }}"></script>
+<script src="{{ url_for('static', filename='js/perfil_colegios/editar_historial.js') }}"></script>
+<script src="{{ url_for('static', filename='js/perfil_colegios/historial_procesos.js') }}"></script>
+
 {% include "colegios/_form_colegio.html" %}
+{% include 'perfil_colegios/_modal_historial.html' %}
+{% include 'perfil_colegios/modal_generador_documentos.html' %}
+
 
 {% endblock %}

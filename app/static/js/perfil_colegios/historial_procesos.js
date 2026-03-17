@@ -7,18 +7,28 @@ let ordenActual = 'desc'; // Por defecto los más nuevos
 
 
 
-function abrirHistorial(colegioId, pagina = 1) {
+// --- CAMBIO AQUÍ: Agregamos nombreColegio como parámetro ---
+function abrirHistorial(colegioId, pagina = 1, nombreColegio = '') {
+
+    // Ahora sí, esta condición no romperá el código
+    if (nombreColegio) {
+        const tituloModal = document.querySelector('#modalHistorial .modal-title');
+        if (tituloModal) tituloModal.innerText = `Historial de Procesos: ${nombreColegio}`;
+    }
+
     // 1. Guardamos el contexto actual
     idColegioActual = colegioId;
     paginaActual = pagina;
 
-    // --- CAPTURAR EL VALOR ACTUAL DEL BUSCADOR ---
-    const inputPrevio = document.getElementById('buscarProceso');
-    const query = inputPrevio ? inputPrevio.value : ''; 
-
     const modalElement = document.getElementById('modalHistorial');
     const contenedor = document.getElementById('contenedorHistorial');
-    
+
+    // --- MEJORA: CAPTURAR BÚSQUEDA ---
+    // Si la página es 1, a veces queremos resetear la búsqueda al cambiar de colegio
+    const inputPrevio = document.getElementById('buscarProceso');
+    let query = inputPrevio ? inputPrevio.value : ''; 
+
+    // Inicializamos el modal de Bootstrap
     let myModal = bootstrap.Modal.getInstance(modalElement);
     if (!myModal) {
         myModal = new bootstrap.Modal(modalElement);
@@ -32,82 +42,84 @@ function abrirHistorial(colegioId, pagina = 1) {
                     <div class="col-12 col-md-8">
                         <div class="input-group shadow-sm" style="height: 48px;">
                             <span class="input-group-text bg-white border-end-0 text-primary px-3">
-                                <i class="bi bi-search" style="font-size: 1.1rem;"></i>
+                                <i class="bi bi-search"></i>
                             </span>
                             <input type="text" id="buscarProceso" 
                                    class="form-control border-start-0 ps-2" 
-                                   placeholder="Buscar por NIT, nombre o proceso..." 
+                                   placeholder="Buscar proceso..." 
                                    oninput="filtrarHistorial()"
-                                   value="${query}" 
-                                   style="font-size: 0.95rem;">
+                                   value="${query}">
                         </div>
                     </div>
                     <div class="col-12 col-md-2">
-                        <button id="btnOrden" onclick="alternarOrden()" 
-                                class="btn btn-sm btn-outline-secondary shadow-sm w-100 d-flex align-items-center justify-content-center" 
-                                style="height: 48px; font-size: 0.85rem; font-weight: 500; border-radius: 8px;">
-                            <i class="bi bi-sort-numeric-down me-1" id="iconoOrden" style="font-size: 1.1rem;"></i>
-                            <span id="textoOrden">Recientes</span>
+                        <button onclick="alternarOrden()" class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center" style="height: 48px;">
+                            <i class="bi bi-sort-numeric-down"></i>
                         </button>
                     </div>
                 </div>
             </div>
-            
             <div id="listaProcesosReal" class="mt-3">
                 <div class="text-center py-5">
                     <div class="spinner-border text-primary" role="status"></div>
                     <p class="mt-2 text-muted small">Cargando expedientes...</p>
                 </div>
             </div>
-            
             <div id="paginacionControles" class="pb-4"></div>`;
         
-        if (!modalElement.classList.contains('show')) myModal.show();
-
-        // Mantenemos el foco en el input después de renderizar
-        if (query !== '') {
-            const inputRef = document.getElementById('buscarProceso');
-            inputRef.focus();
-            inputRef.setSelectionRange(query.length, query.length);
+        // Solo mostramos el modal si no está ya a la vista
+        if (!modalElement.classList.contains('show')) {
+            myModal.show();
         }
 
     } else {
-        document.getElementById('listaProcesosReal').innerHTML = `
-            <div class="text-center py-5">
-                <div class="spinner-border text-primary" role="status"></div>
-                <p class="mt-2 text-muted small">Cargando página ${pagina}...</p>
-            </div>`;
+        // Cambio de página: solo spinner en la lista
+        const lista = document.getElementById('listaProcesosReal');
+        if (lista) {
+            lista.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted small">Cargando página ${pagina}...</p>
+                </div>`;
+        }
     }
 
-    // 3. FETCH modificado para enviar "?page=" Y "&q="
-    // Usamos encodeURIComponent para que espacios o caracteres raros no rompan la URL
+    // 3. FETCH de datos
     fetch(`/historial/historial_json/${colegioId}?page=${pagina}&q=${encodeURIComponent(query)}&orden=${ordenActual}`)
         .then(response => {
             if (!response.ok) throw new Error('Error en la red');
             return response.json();
         })
         .then(data => {
+            const listaReal = document.getElementById('listaProcesosReal');
+            if (!listaReal) return; 
+
             if (!data.procesos || data.procesos.length === 0) {
-                document.getElementById('listaProcesosReal').innerHTML = `
+                listaReal.innerHTML = `
                     <div class="text-center py-5">
                         <i class="bi bi-folder2-open display-4 text-muted opacity-50"></i>
-                        <p class="text-muted mt-3">No se encontraron resultados para "${query}".</p>
+                        <p class="text-muted mt-3">No se encontraron registros.</p>
                     </div>`;
                 document.getElementById('paginacionControles').innerHTML = '';
                 return;
             }
 
             datosHistorialCache = data.procesos;
-            dibujarListaProcesos(datosHistorialCache);
+
+            // Detectamos si estamos en la interfaz de administrador
+            // Esto asume que tu URL de admin contiene la palabra "admin"
+            const esAdmin = window.location.pathname.includes('admin'); 
+            
+            dibujarListaProcesos(datosHistorialCache, esAdmin); 
             renderizarPaginacion(data);
         })
         .catch(error => {
             console.error('Error:', error);
-            document.getElementById('listaProcesosReal').innerHTML = 
-                `<div class="alert alert-danger m-3 small">Error al cargar historial.</div>`;
+            const listaReal = document.getElementById('listaProcesosReal');
+            if (listaReal) {
+                listaReal.innerHTML = `<div class="alert alert-danger m-4">Error al conectar con el servidor.</div>`;
+            }
         });
 }
-
 
 // Función para alternar orden y redibujar
 function alternarOrden() {
@@ -119,11 +131,10 @@ function alternarOrden() {
     abrirHistorial(idColegioActual, 1);
 }
 
-// Función diseño de tarjetas - Se mantiene igual para ser compatible con paginación
-function dibujarListaProcesos(data) {
+// Añadimos modoAdmin = false como parámetro por defecto
+function dibujarListaProcesos(data, modoAdmin = false) {
     const listaReal = document.getElementById('listaProcesosReal');
     
-    // Si no hay datos (por si acaso)
     if (!data || data.length === 0) {
         listaReal.innerHTML = `
             <div class="text-center py-5">
@@ -161,15 +172,24 @@ function dibujarListaProcesos(data) {
                 <div class="col-auto">
                     <div class="d-flex gap-2">
                         <button onclick="opcionesDescargaHistorial(${proceso.id})" 
-                                class="btn btn-sm btn-primary d-flex align-items-center px-3 shadow-sm">
-                            <i class="bi bi-cloud-arrow-down-fill me-1"></i> DESCARGAR
+                                class="btn btn-sm btn-primary d-flex align-items-center px-2 shadow-sm" title="Descargar">
+                            <i class="bi bi-cloud-arrow-down-fill"></i>
                         </button>
-                        <button onclick="editarProceso(${proceso.id})" 
-                                class="btn btn-sm btn-outline-warning px-3" title="Editar Proceso">
-                                  <i class="bi bi-pencil-square"></i>
-                        </button>
+
+                       
+                            <button onclick="editarProceso(${proceso.id})" 
+                                    class="btn btn-sm btn-outline-warning px-2" title="Editar Proceso">
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
+                         ${modoAdmin ? `
+                            <button onclick="eliminarProcesoHistorial(${proceso.id}, '${proceso.tipo_contrato}')" 
+                                    class="btn btn-sm btn-outline-danger px-2" title="Eliminar Definitivamente">
+                                <i class="bi bi-trash3"></i>
+                            </button>
+                        ` : ''}
+
                         <button onclick="verDetalleProceso(${proceso.id})" 
-                                class="btn btn-sm btn-outline-secondary px-3">
+                                class="btn btn-sm btn-outline-secondary px-2" title="Ver Detalle">
                             <i class="bi bi-eye"></i>
                         </button>
                     </div>
@@ -357,3 +377,13 @@ async function procesarDescargaEfectiva(procesoId, opciones) {
         });
     }
 }
+
+
+// --- EXPOSICIÓN GLOBAL PARA QUE LOS BOTONES ONCLICK FUNCIONEN ---
+window.abrirHistorial = abrirHistorial;
+window.alternarOrden = alternarOrden;
+window.filtrarHistorial = filtrarHistorial;
+window.verDetalleProceso = verDetalleProceso;
+window.opcionesDescargaHistorial = opcionesDescargaHistorial;
+window.editarProceso = editarProceso; // Si la tienes definida
+window.eliminarProcesoHistorial = eliminarProcesoHistorial; // La que crearemos abajo

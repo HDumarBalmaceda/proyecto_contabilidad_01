@@ -66,10 +66,16 @@ function renderizarTablaColegios(colegios) {
                 <td>${contadorBadge}</td>
                 <td class="text-center">
                     <div class="btn-group gap-1">
+                        <button class="btn btn-sm btn-outline-info" title="Ver Historial de Procesos" 
+                                onclick="abrirHistorial(${col.id}, 1, '${col.nombre}')">
+                            <i class="bi bi-archive-fill"></i>
+                        </button>
+
                         <button class="btn btn-sm btn-outline-warning btn-editar" title="Editar" 
                                 data-bs-toggle="modal" data-bs-target="#crearColegioModal" ${dataAttrs}>
                             <i class="bi bi-pencil-square"></i>
                         </button>
+                        
                         <button class="btn btn-sm btn-outline-danger btn-eliminar" title="Eliminar" 
                                 data-id="${col.id}" data-nombre="${col.nombre}">
                             <i class="bi bi-trash3-fill"></i>
