@@ -378,24 +378,26 @@ def vista_admin_colegios():
 @colegios_bp.route('/colegios_json_paginado')
 @login_required
 def colegios_json_paginado():
-    if current_user.rol != 'admin':
-        return jsonify({"error": "No autorizado"}), 403
-
-    # 1. Parámetros
+    # 1. Parámetros de la solicitud
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('q', '').strip()
-    per_page = 10
+    per_page = 9 # Sugerencia: 9 se ve mejor en rejillas de 3x3
 
-    # 2. Query Base
-    query = Colegio.query
+    # 2. Query Base con Filtro de Seguridad por Rol
+    # Si es admin, ve todos. Si no, solo donde usuario_id coincide con su ID.
+    if current_user.rol == 'admin':
+        query = Colegio.query
+    else:
+        query = Colegio.query.filter_by(usuario_id=current_user.id)
 
-    # 3. Filtro de búsqueda
+    # 3. Filtro de búsqueda (Si el usuario escribió algo)
     if search_query:
         sf = f"%{search_query}%"
         query = query.filter(or_(
             Colegio.nombre.ilike(sf),
             Colegio.nit.ilike(sf),
-            Colegio.municipio.ilike(sf)
+            Colegio.municipio.ilike(sf),
+            Colegio.rector_nombre.ilike(sf)
         ))
 
     # 4. Paginación
@@ -403,7 +405,7 @@ def colegios_json_paginado():
         page=page, per_page=per_page, error_out=False
     )
 
-    # 5. Formatear resultados
+    # 5. Formatear resultados (Aseguramos que coincidan con tu frontend)
     resultado = []
     for col in pagination.items:
         resultado.append({
@@ -414,19 +416,16 @@ def colegios_json_paginado():
             "direccion": col.direccion,
             "telefono": col.telefono,
             "rector_nombre": col.rector_nombre or 'No asignado',
-            "rector_documento": col.rector_documento or '',
-            "rector_tipo_documento": col.rector_tipo_documento or '',
             "logo_path": col.logo_path or '',
-            "firma_path": col.firma_path or '',
-            # Traemos info del contador relacionado
-            "contador_nombre": col.contador.username if col.contador else None
+            # Info del contador (útil para el admin, transparente para el contador)
+            "contador_nombre": col.contador.username if col.contador else 'No asignado'
         })
 
     return jsonify({
         "colegios": resultado,
         "total_paginas": pagination.pages,
         "pagina_actual": pagination.page,
+        "total_registros": pagination.total,
         "tiene_siguiente": pagination.has_next,
-        "tiene_anterior": pagination.has_prev,
-        "total_registros": pagination.total
+        "tiene_anterior": pagination.has_prev
     })

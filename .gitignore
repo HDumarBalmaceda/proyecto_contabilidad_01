@@ -13,3 +13,8 @@ instance/
 # --- ESTA ES LA REGLA PARA TEMP ---
 static/temp/*
 !static/temp/.gitkeep
+
+# Ignorar archivos temporales
+app/static/temp/*
+app/static/uploads/*.jpeg
+app/static/uploads/*.png

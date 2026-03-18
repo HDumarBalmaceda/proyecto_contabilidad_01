@@ -48,28 +48,47 @@ document.addEventListener("DOMContentLoaded", function() {
     if (firmaInput) firmaInput.addEventListener("change", function() { mostrarVistaPrevia(this, "previewFirma", "firmaText"); });
 
     // --- B. LÓGICA DE EDICIÓN ---
-    document.addEventListener('click', function(e) {
-        const btnEditar = e.target.closest('.btn-editar');
-        if (btnEditar) {
-            if (modalTitle) modalTitle.textContent = "Editar Información del Colegio";
-            if (btnGuardarNuevo) btnGuardarNuevo.classList.add('d-none'); 
-            if (btnActualizarEdit) btnActualizarEdit.classList.remove('d-none');
-            
-            const id = btnEditar.getAttribute('data-id');
-            formColegio.action = `/colegios/editar/${id}`;
+    /**
+ * B. LÓGICA DE EDICIÓN (Global para ser llamada desde tarjetas dinámicas)
+ */
+window.prepararEdicion = function(colegio) {
+    const formColegio = document.getElementById("formCrearColegio");
+    const modalTitle = document.getElementById('modalTitle');
+    const btnGuardarNuevo = document.getElementById('btn-guardar-nuevo');
+    const btnActualizarEdit = document.getElementById('btn-actualizar-edit');
 
-            const campos = ['nombre', 'nit', 'direccion', 'telefono', 'municipio', 'rector_nombre', 'rector_documento', 'rector_tipo_documento'];
-            campos.forEach(c => {
-                const input = formColegio.querySelector(`[name="${c}"]`);
-                if (input) input.value = btnEditar.getAttribute(`data-${c}`) || '';
-            });
+    // 1. Configurar UI del Modal
+    if (modalTitle) modalTitle.textContent = "Editar Información del Colegio";
+    if (btnGuardarNuevo) btnGuardarNuevo.classList.add('d-none'); 
+    if (btnActualizarEdit) btnActualizarEdit.classList.remove('d-none');
+    
+    // 2. Configurar Ruta de envío
+    formColegio.action = `/colegios/editar/${colegio.id}`;
 
-            gestionarImagenPreview(btnEditar.getAttribute('data-logo'), "previewLogo", "logoText");
-            gestionarImagenPreview(btnEditar.getAttribute('data-firma'), "previewFirma", "firmaText");
-            
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('crearColegioModal')).show();
+    // 3. Llenar campos de texto y selectores
+    const campos = [
+        'nombre', 'nit', 'direccion', 'telefono', 
+        'municipio', 'rector_nombre', 'rector_documento', 
+        'rector_tipo_documento'
+    ];
+
+    campos.forEach(c => {
+        const input = formColegio.querySelector(`[name="${c}"]`);
+        if (input) {
+            // Usamos el objeto 'colegio' que viene del JSON directamente
+            input.value = colegio[c] || '';
         }
     });
+
+    // 4. Gestionar imágenes (Logo y Firma)
+    gestionarImagenPreview(colegio.logo_path, "previewLogo", "logoText");
+    gestionarImagenPreview(colegio.firma_path, "previewFirma", "firmaText");
+    
+    // 5. Mostrar el Modal
+    const modalElem = document.getElementById('crearColegioModal');
+    const modalInstance = bootstrap.Modal.getOrCreateInstance(modalElem);
+    modalInstance.show();
+};
 
     // --- C. ENVÍO INTELIGENTE ---
     if (formColegio) {
