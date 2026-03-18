@@ -87,6 +87,7 @@ def historial_json(colegio_id):
                  'nit_proveedor': documento_final,
                  'numero_proceso_colegio': p.numero_proceso_colegio,
                  'valor': f"${total_proceso:,.0f}",
+                 'plazo': p.plazo_txt,
                  'fecha_creacion': p.fecha_creacion.strftime('%d/%m/%Y') if p.fecha_creacion else "N/A"
             })
         

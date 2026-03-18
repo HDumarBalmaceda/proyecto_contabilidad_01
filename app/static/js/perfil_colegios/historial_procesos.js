@@ -264,15 +264,27 @@ function filtrarHistorial() {
 function verDetalleProceso(procesoId) {
     const p = datosHistorialCache.find(item => item.id === procesoId);
     if (p) {
-        document.getElementById('det_vigencia').innerText = p.vigencia;
-        document.getElementById('det_tipo_contrato').innerText = p.tipo_contrato;
-        document.getElementById('det_objeto').innerText = p.objeto || "Sin descripción";
-        document.getElementById('det_proveedor').innerText = p.proveedor;
-        document.getElementById('det_nit_proveedor').innerText = p.nit_proveedor;
-        document.getElementById('det_valor').innerText = p.valor;
-        document.getElementById('det_plazo').innerText = p.plazo;
-        document.getElementById('det_fecha').innerText = p.fecha_creacion;
-        const modalDetalle = new bootstrap.Modal(document.getElementById('modalDetalleProceso'));
+        
+        // Campos básicos
+        document.getElementById('det_vigencia').innerText = p.vigencia || "N/A";
+        document.getElementById('det_tipo_contrato').innerText = p.tipo_contrato || "N/A";
+        
+        // OBJETO: Usamos objeto_corto que es el que viene en tu JSON
+        document.getElementById('det_objeto').innerText = p.objeto_corto || "Sin descripción";
+        
+        document.getElementById('det_proveedor').innerText = p.proveedor || "N/A";
+        document.getElementById('det_nit_proveedor').innerText = p.nit_proveedor || "N/A";
+        document.getElementById('det_valor').innerText = p.valor || "$ 0";
+        
+        // PLAZO: Como no viene en el JSON, ponemos un mensaje por defecto 
+        // para que no quede el guion "-"
+        document.getElementById('det_plazo').innerText = p.plazo || "No definido";
+        
+        document.getElementById('det_fecha').innerText = p.fecha_creacion || "N/A";
+
+        // Mostrar el modal
+        const modalElement = document.getElementById('modalDetalleProceso');
+        const modalDetalle = bootstrap.Modal.getOrCreateInstance(modalElement);
         modalDetalle.show();
     }
 }

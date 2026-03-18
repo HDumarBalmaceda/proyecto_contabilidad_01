@@ -2,7 +2,7 @@ from flask import Blueprint, request, current_app, send_file, jsonify
 from app.modelos.models import ProcesoContractual, Colegio, Proveedor
 from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm
-import os, re, zipfile, subprocess, platform  # <--- Agregamos subprocess para LibreOffice
+import os, re, zipfile, subprocess, platform  
 from io import BytesIO
 from num2words import num2words
 import threading
@@ -12,6 +12,7 @@ from datetime import datetime
 import shutil
 from flask import after_this_request
 from flask_login import login_required, current_user
+from app.utils.imagenes import obtener_imagen_procesada
 
 pdf_lock = threading.Lock()
 reportes_bp = Blueprint('reportes', __name__)
@@ -250,18 +251,16 @@ def descargar_zip(proceso_id):
     
     try:
         # 1. Validación de seguridad y obtención de datos
-        # (Lanza PermissionError si no es el dueño)
         contexto, colegio, nombre_col_limpio = obtener_contexto_proceso(proceso_id)
         
         ruta_plantillas = os.path.join(current_app.root_path, 'static', 'plantillas')
-        
-        # Verificar que existan plantillas para evitar un ZIP vacío o error
+        ruta_temp = os.path.join(current_app.root_path, 'static', 'temp')
+        os.makedirs(ruta_temp, exist_ok=True)
+
         if not os.path.exists(ruta_plantillas):
             return jsonify({"success": False, "message": "No se encontró la carpeta de plantillas"}), 404
             
         archivos_docs = sorted([f for f in os.listdir(ruta_plantillas) if f.endswith('.docx')])
-        ruta_temp = os.path.join(current_app.root_path, 'static', 'temp')
-        os.makedirs(ruta_temp, exist_ok=True)
         
         zip_buffer = BytesIO()
         
@@ -269,47 +268,52 @@ def descargar_zip(proceso_id):
             for nombre_p in archivos_docs:
                 doc = DocxTemplate(os.path.join(ruta_plantillas, nombre_p))
                 
-                # Logos y Firmas optimizados
-                if colegio.logo_path:
-                    r_logo_opt = redimensionar_imagen(os.path.join(current_app.root_path, 'static', 'uploads', colegio.logo_path), 300)
-                    if r_logo_opt: 
-                        contexto['logo'] = InlineImage(doc, r_logo_opt, width=Mm(20))
-                        if r_logo_opt not in archivos_creados: archivos_creados.append(r_logo_opt)
+                # --- NUEVA LÓGICA DE IMÁGENES REFACTORIZADA ---
+                # Procesar Logo
+                logo_obj, path_l = obtener_imagen_procesada(doc, colegio.logo_path, 25)
+                contexto['logo'] = logo_obj if logo_obj else ""
+                if path_l and path_l not in archivos_creados: archivos_creados.append(path_l)
 
-                if colegio.firma_path:
-                    r_firma_opt = redimensionar_imagen(os.path.join(current_app.root_path, 'static', 'uploads', colegio.firma_path), 450)
-                    if r_firma_opt: 
-                        contexto['firma'] = InlineImage(doc, r_firma_opt, width=Mm(35))
-                        if r_firma_opt not in archivos_creados: archivos_creados.append(r_firma_opt)
+                # Procesar Firma
+                firma_obj, path_f = obtener_imagen_procesada(doc, colegio.firma_path, 35)
+                contexto['firma'] = firma_obj if firma_obj else ""
+                if path_f and path_f not in archivos_creados: archivos_creados.append(path_f)
 
+                # Renderizar con el contexto limpio
                 doc.render(contexto)
                 
+                # Preparar nombres de archivo
                 nombre_plantilla_limpio = os.path.splitext(nombre_p)[0].upper()
                 nombre_base_final = f"{nombre_plantilla_limpio}_{nombre_col_limpio}"
                 path_word = os.path.join(ruta_temp, f"{nombre_base_final}.docx")
+                
+                # Guardar temporal
                 doc.save(path_word)
                 archivos_creados.append(path_word)
                 
+                # --- LÓGICA DE COMPRESIÓN ---
                 if formato == 'pdf':
                     with pdf_lock:
                         if convertir_a_pdf_libreoffice(path_word, ruta_temp):
                             path_pdf = path_word.replace(".docx", ".pdf")
                             zf.write(path_pdf, arcname=f"{nombre_base_final}.pdf")
-                            archivos_creados.append(path_pdf)
+                            if path_pdf not in archivos_creados: archivos_creados.append(path_pdf)
                         else:
+                            # Si falla PDF, metemos el Word para no dejar el ZIP vacío
                             zf.write(path_word, arcname=f"{nombre_base_final}.docx")
                 else:
                     zf.write(path_word, arcname=f"{nombre_base_final}.docx")
 
         zip_buffer.seek(0)
         
-        # Limpieza post-respuesta
+        # Limpieza automática después de enviar
         @after_this_request
         def limpiar_basura_temporal(response):
             for ruta in archivos_creados:
                 try:
                     if os.path.exists(ruta): os.remove(ruta)
-                except: pass
+                except Exception as e:
+                    print(f"No se pudo borrar {ruta}: {e}")
             return response
 
         return send_file(
@@ -319,14 +323,13 @@ def descargar_zip(proceso_id):
             download_name=f"PAQUETE_{nombre_col_limpio}.zip"
         )
 
-    # --- MANEJO DE ERRORES PULIDO ---
     except PermissionError as pe:
-        print(f"INTENTO DE ACCESO NO AUTORIZADO: {str(pe)}")
         return jsonify({"success": False, "message": str(pe)}), 403
-
     except Exception as e:
-        print(f"ERROR GENERANDO ZIP: {str(e)}")
-        return jsonify({"success": False, "message": "Error crítico al generar el paquete de documentos"}), 500
+        import traceback
+        print("--- ERROR DETALLADO ---")
+        print(traceback.format_exc()) # Esto nos dirá la línea exacta del fallo
+        return jsonify({"success": False, "message": str(e)}), 500
 
 @reportes_bp.route('/descargar_individual/<int:proceso_id>/<string:nombre_p>')
 @login_required
@@ -335,33 +338,31 @@ def descargar_individual(proceso_id, nombre_p):
     archivos_a_borrar = [] 
     
     try:
-        # 1. Intentamos obtener el contexto (Aquí saltará el PermissionError si no es el dueño)
+        # 1. Obtención de contexto y validación de seguridad
         contexto, colegio, nombre_col_limpio = obtener_contexto_proceso(proceso_id)
         
         ruta_plantillas = os.path.join(current_app.root_path, 'static', 'plantillas')
         ruta_temp = os.path.join(current_app.root_path, 'static', 'temp')
         os.makedirs(ruta_temp, exist_ok=True)
         
-        # Validar que la plantilla existe antes de procesar
         ruta_completa_plantilla = os.path.join(ruta_plantillas, nombre_p)
         if not os.path.exists(ruta_completa_plantilla):
-            return jsonify({"success": False, "message": "La plantilla solicitada no existe"}), 404
+            return jsonify({"success": False, "message": "La plantilla no existe"}), 404
 
         doc = DocxTemplate(ruta_completa_plantilla)
 
-        # --- LOGO Y FIRMA ---
-        if colegio.logo_path:
-            r_logo_opt = redimensionar_imagen(os.path.join(current_app.root_path, 'static', 'uploads', colegio.logo_path), 300)
-            if r_logo_opt:
-                contexto['logo'] = InlineImage(doc, r_logo_opt, width=Mm(28))
-                archivos_a_borrar.append(r_logo_opt)
+        # --- USO DE LA NUEVA FUNCIÓN DE IMÁGENES ---
+        # Procesar Logo (Ancho sugerido 28mm)
+        logo_obj, path_l = obtener_imagen_procesada(doc, colegio.logo_path, 28)
+        contexto['logo'] = logo_obj if logo_obj else ""
+        if path_l: archivos_a_borrar.append(path_l)
 
-        if colegio.firma_path:
-            r_firma_opt = redimensionar_imagen(os.path.join(current_app.root_path, 'static', 'uploads', colegio.firma_path), 450)
-            if r_firma_opt:
-                contexto['firma'] = InlineImage(doc, r_firma_opt, width=Mm(25))
-                archivos_a_borrar.append(r_firma_opt)
+        # Procesar Firma (Ancho sugerido 35mm)
+        firma_obj, path_f = obtener_imagen_procesada(doc, colegio.firma_path, 35)
+        contexto['firma'] = firma_obj if firma_obj else ""
+        if path_f: archivos_a_borrar.append(path_f)
 
+        # 2. Renderizado
         doc.render(contexto)
         
         nombre_plantilla_limpio = os.path.splitext(nombre_p)[0].upper()
@@ -371,7 +372,7 @@ def descargar_individual(proceso_id, nombre_p):
         doc.save(path_word)
         archivos_a_borrar.append(path_word)
         
-        # --- LÓGICA DE ENVÍO Y CONVERSIÓN ---
+        # 3. Lógica de envío y conversión
         archivo_a_enviar = path_word
         nombre_final_con_ext = f"{nombre_base_final}.docx"
         mimetype_final = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
@@ -384,13 +385,17 @@ def descargar_individual(proceso_id, nombre_p):
                     nombre_final_con_ext = f"{nombre_base_final}.pdf"
                     mimetype_final = 'application/pdf'
                     archivos_a_borrar.append(path_pdf)
+                # Si falla PDF, por defecto enviará el Word generado arriba
 
+        # 4. Limpieza segura post-respuesta
         @after_this_request
         def cleanup(response):
             for path in archivos_a_borrar:
                 try:
-                    if os.path.exists(path): os.remove(path)
-                except: pass
+                    if os.path.exists(path):
+                        os.remove(path)
+                except Exception as e:
+                    print(f"No se pudo limpiar archivo temporal: {e}")
             return response
 
         return send_file(
@@ -400,12 +405,8 @@ def descargar_individual(proceso_id, nombre_p):
             mimetype=mimetype_final
         )
 
-    # --- TOQUE FINAL: MANEJO DE ERRORES ESPECÍFICOS ---
     except PermissionError as pe:
-        # Si 'obtener_contexto_proceso' lanza falta de permisos
-        print(f"ADVERTENCIA DE SEGURIDAD: {str(pe)}")
         return jsonify({"success": False, "message": str(pe)}), 403
-
     except Exception as e:
-        print(f"ERROR CRÍTICO EN DESCARGA: {str(e)}") 
+        print(f" ERROR CRÍTICO EN DESCARGA INDIVIDUAL: {str(e)}") 
         return jsonify({"success": False, "message": "Error al generar el documento"}), 500

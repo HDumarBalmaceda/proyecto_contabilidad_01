@@ -3,7 +3,7 @@ function cargarAniosModal() {
     const inputOculto = document.getElementById('modalVigenciaInput');
     const textoBoton = document.getElementById('anioTextoModal');
     
-     console.log("cargarAniosModal se ejecutó. Valor detectado en el input:", inputOculto ? inputOculto.value : "NO EXISTE EL INPUT");
+     
     if (!contenedor || !inputOculto) return;
 
     contenedor.innerHTML = '';
@@ -221,7 +221,6 @@ async function procesarExpediente() {
     }
 
     // 5. ENVÍO UNIFICADO (Aquí está la magia)
-    console.log("Datos finales a enviar:", datosParaEnviar); 
 
     // Determinamos si es nuevo o edición
     const esNuevo = !datosParaEnviar.proceso_id;
@@ -456,7 +455,6 @@ const miModal = document.getElementById('modalGeneradorDocumentos');
 
 if (miModal) {
     miModal.addEventListener('shown.bs.modal', function () {
-        console.log("🚀 El modal se abrió completamente. Ejecutando cargarAniosModal...");
         
         // Aquí llamamos a la función que dibuja los cuadritos azules
         if (typeof cargarAniosModal === "function") {
