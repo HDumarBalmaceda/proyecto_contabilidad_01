@@ -144,3 +144,23 @@ def obtener_proveedores_colegio(colegio_id):
         return jsonify(data), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@procesos_bp.route('/eliminar_proceso/<int:id>', methods=['DELETE'])
+@login_required
+def eliminar_proceso(id):
+    try:
+        proceso = ProcesoContractual.query.get_or_404(id)
+        colegio = Colegio.query.get(proceso.colegio_id)
+
+        # SEGURIDAD: Solo admin o el dueño del colegio
+        if current_user.rol != 'admin' and (not colegio or colegio.usuario_id != current_user.id):
+            return jsonify({"success": False, "message": "No tienes permiso para eliminar este proceso."}), 403
+
+        db.session.delete(proceso)
+        db.session.commit()
+        
+        return jsonify({"success": True, "message": "Proceso eliminado correctamente."}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500

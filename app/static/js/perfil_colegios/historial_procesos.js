@@ -256,7 +256,6 @@ function filtrarHistorial() {
 
     // Esperamos 400ms antes de disparar la búsqueda al servidor
     timerBusquedaHistorial = setTimeout(() => {
-        console.log("Buscando en historial servidor:", query);
         // Llamamos a la función principal siempre a la página 1
         abrirHistorial(idColegioActual, 1);
     }, 400);
@@ -378,6 +377,55 @@ async function procesarDescargaEfectiva(procesoId, opciones) {
     }
 }
 
+async function eliminarProcesoHistorial(idProceso) {
+    const { value: confirmacion } = await Swal.fire({
+        title: '¿Estás seguro?',
+        text: "Esta acción no se puede deshacer y eliminará todos los ítems asociados.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (confirmacion) {
+        try {
+            // Mostrar carga
+            Swal.fire({
+                title: 'Eliminando...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            const response = await fetch(`/procesos/eliminar_proceso/${idProceso}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                Swal.fire('¡Eliminado!', result.message, 'success').then(() => {
+                    // Refrescar el historial después de eliminar
+                    // idColegioActual debe estar disponible globalmente
+                    if (typeof abrirHistorial === 'function') {
+                        abrirHistorial(idColegioActual, paginaActual);
+                    } else {
+                        location.reload(); // Opción de respaldo
+                    }
+                });
+            } else {
+                throw new Error(result.message);
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            Swal.fire('Error', 'No se pudo eliminar el proceso: ' + error.message, 'error');
+        }
+    }
+}
 
 // --- EXPOSICIÓN GLOBAL PARA QUE LOS BOTONES ONCLICK FUNCIONEN ---
 window.abrirHistorial = abrirHistorial;

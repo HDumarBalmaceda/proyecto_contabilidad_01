@@ -28,8 +28,7 @@ function cargarProveedores(pagina) {
     const query = input ? input.value.trim() : ''; // CAPTURA EL VALOR AQUÍ
     const contenedor = document.getElementById('tablaProveedoresBody');
 
-    // DEBUG: Mira esto en tu consola (F12) para ver si el texto viaja
-    console.log(`Buscando: "${query}" en página ${pagina}`);
+
 
     contenedor.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">
         <div class="spinner-border spinner-border-sm text-primary"></div> Buscando...

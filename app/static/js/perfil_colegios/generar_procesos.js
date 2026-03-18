@@ -358,13 +358,26 @@ document.querySelector('[name="plazo_txt"]').addEventListener('input', actualiza
 
 
 function obtenerColegioId() {
-    let colegioId = document.getElementById('colegio_id_input')?.value; 
-    if (!colegioId) {
-        const pathSegments = window.location.pathname.split('/').filter(s => s !== "");
-        // Usamos pathSegments que es la variable real
-        colegioId = pathSegments[pathSegments.length - 1]; 
+    // 1. Intentar obtenerlo de un input oculto que DEBE existir en el modal
+    const inputId = document.getElementById('colegio_id_hidden');
+    if (inputId && inputId.value && inputId.value !== "null") {
+        return inputId.value;
     }
-    return colegioId;
+
+    // 2. Intentar obtenerlo de la variable global si tiene un número
+    if (typeof idColegioActual !== 'undefined' && idColegioActual && !isNaN(idColegioActual)) {
+        return idColegioActual;
+    }
+
+    // 3. Como último recurso, intentar la URL (solo si el último segmento es un número)
+    const pathSegments = window.location.pathname.split('/');
+    const lastSegment = pathSegments[pathSegments.length - 1];
+    
+    if (!isNaN(lastSegment)) {
+        return lastSegment;
+    }
+
+    return null; // Si llega aquí, es que no lo encontró
 }
 
 async function actualizarProcesoExistente(datos) {
