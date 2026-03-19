@@ -1,7 +1,8 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify
 from flask_login import login_required, current_user
 from app import db
 from app.modelos.models import Usuario, Colegio  
+from sqlalchemy import or_
 
 # ESTA LÍNEA ES LA QUE FALTA:
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin/enlaces')
@@ -52,3 +53,38 @@ def liberar_colegio(id):
     
     flash(f'El colegio {colegio.nombre} ha sido liberado correctamente.', 'warning')
     return redirect(url_for('admin.panel_enlace'))
+
+
+@admin_bp.route('/asignados_json')
+@login_required
+def asignados_json():
+    if current_user.rol != 'admin':
+        return jsonify({"error": "No autorizado"}), 403
+
+    page = request.args.get('page', 1, type=int)
+    search = request.args.get('q', '').strip()
+    per_page = 8  # Número de filas por página
+
+    # Query base: Solo colegios que TIENEN un contador asignado
+    query = Colegio.query.filter(Colegio.usuario_id.isnot(None))
+
+    # Filtro de búsqueda (Nombre del colegio o NIT)
+    if search:
+        query = query.filter(or_(
+            Colegio.nombre.ilike(f"%{search}%"),
+            Colegio.nit.ilike(f"%{search}%")
+        ))
+
+    # Paginación
+    pagination = query.order_by(Colegio.nombre.asc()).paginate(page=page, per_page=per_page)
+
+    return jsonify({
+        "colegios": [{
+            "id": c.id,
+            "nombre": c.nombre,
+            "nit": c.nit,
+            "contador_nombre": c.contador.username.capitalize() if c.contador else "Sin asignar"
+        } for c in pagination.items],
+        "total_paginas": pagination.pages,
+        "pagina_actual": pagination.page
+    })

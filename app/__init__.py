@@ -4,6 +4,7 @@ from flask_migrate import Migrate
 from flask_login import LoginManager  # <--- 1. Importar LoginManager
 from config import Config
 
+
 # Inicializamos las extensiones
 db = SQLAlchemy()
 migrate = Migrate()
@@ -60,6 +61,10 @@ def create_app():
         # 7. RELACIONES Y ENLACES (NUEVO)
         from app.controladores.relaciones.enlaces import admin_bp 
         app.register_blueprint(admin_bp)
+
+        # 8. BACKUPS 
+        from app.controladores.backups.backups_controlador import backups_bp
+        app.register_blueprint(backups_bp, url_prefix='/backups')
 
     # --- RUTA RAÍZ INTELIGENTE ---
     @app.route("/")
