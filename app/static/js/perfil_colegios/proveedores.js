@@ -1,3 +1,61 @@
+let timeoutBusqueda;
+
+document.addEventListener('input', function(e) {
+    if (e.target && e.target.id === 'busquedaProveedor') {
+        clearTimeout(timeoutBusqueda);
+        
+        const texto = e.target.value.trim();
+        const select = document.getElementById('selectProveedor');
+
+        // Si borran la búsqueda, podemos limpiar el select o dejarlo como está
+        if (texto.length < 2) return;
+
+        timeoutBusqueda = setTimeout(async () => {
+            try {
+                // Reutilizamos tu ruta: /proveedores/proveedores_json_paginado?q=texto
+                const response = await fetch(`/proveedores/proveedores_json_paginado?q=${texto}`);
+                const data = await response.json();
+
+                select.innerHTML = ''; // Limpiar opciones anteriores
+
+                if (data.proveedores.length === 0) {
+                    const opt = document.createElement('option');
+                    opt.disabled = true;
+                    opt.textContent = 'No se encontraron resultados...';
+                    select.appendChild(opt);
+                } else {
+                    data.proveedores.forEach(p => {
+                        const option = document.createElement('option');
+                        option.value = p.id;
+                        option.className = 'opcion-proveedor';
+                        
+                        // Lógica para mostrar nombre o razón social (como lo tienes en el controlador)
+                        const nombreMostrar = p.razon_social ? p.razon_social : `${p.primer_nombre} ${p.primer_apellido}`;
+                        option.textContent = `${nombreMostrar} | NIT: ${p.documento}`;
+                        
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error("Error buscando proveedores:", error);
+            }
+        }, 300);
+    }
+});
+
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.btn-desvincular')) {
+        const btn = e.target.closest('.btn-desvincular');
+        const colId = btn.dataset.colegioId;
+        const provId = btn.dataset.proveedorId;
+        const nombre = btn.dataset.nombre;
+
+        // Llamas a tu función original
+        confirmarDesvinculacion(colId, provId, nombre);
+    }
+});
+
+
 document.addEventListener('DOMContentLoaded', function() {
     const formVincular = document.getElementById('formVincular');
 

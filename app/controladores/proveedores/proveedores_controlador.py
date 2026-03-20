@@ -148,19 +148,19 @@ def eliminar_proveedor(id):
 @proveedores_bp.route('/obtener/<int:id>')
 @login_required
 def obtener_proveedor_json(id):
-    # 1. Buscamos el proveedor globalmente
+    # 1. Buscamos el proveedor
     p = Proveedor.query.get_or_404(id)
     
     # 2. Validación de seguridad para contadores
     if current_user.rol != 'admin':
-        colegio_id = session.get('colegio_id')
-        colegio = Colegio.query.get(colegio_id)
+        # Usamos el nombre real del backref: 'colegios_vinculados'
+        # Verificamos si este proveedor está en algún colegio asignado al usuario actual
+        es_mio = p.colegios_vinculados.filter(Colegio.usuario_id == current_user.id).first()
         
-        # Si el proveedor no está en su colegio, no debería ver los datos
-        if not colegio or p not in colegio.proveedores:
-            return {"error": "No autorizado"}, 403
+        if not es_mio:
+            return {"error": "No autorizado para ver este proveedor"}, 403
 
-    # 3. Retorno de datos (se mantiene igual, es perfecto)
+    # 3. Retorno de datos (AJUSTADO A TUS MODELOS)
     return {
         "tipo_tercero": p.tipo_tercero,
         "documento_full": f"{p.documento}-{p.dv}" if p.dv else p.documento,
@@ -170,14 +170,13 @@ def obtener_proveedor_json(id):
         "p_apellido": p.primer_apellido or "-",
         "s_apellido": p.segundo_apellido or "-",
         "direccion": p.direccion or "-",
-        "ubicacion_full": f"{p.ciudad} / {p.departamento}",
-        "movil": p.movil or "-",
+        "ubicacion_full": f"{p.ciudad or ''} / {p.departamento or ''}",
+        "movil": p.movil or p.telefono or "-", 
         "correo": p.correo_electronico or "-",
         "renta": p.renta or "-",
         "banco": p.banco or "-",
         "cuenta": p.no_cuenta or "-"
     }
-
 @proveedores_bp.route('/proveedores_json_paginado')
 @login_required
 def proveedores_json_paginado():

@@ -134,11 +134,7 @@ def detalle_colegio(id):
     # 2. FILTRAR PROVEEDORES YA VINCULADOS
     # Aquí está el truco: colegio.proveedores trae TODOS. 
     # Nosotros creamos una lista nueva que solo tenga los del usuario actual.
-    if current_user.rol == 'admin':
-        proveedores_vinculados = colegio.proveedores
-    else:
-        # Solo incluimos en la lista los proveedores cuyo creador sea el usuario actual
-        proveedores_vinculados = [p for p in colegio.proveedores if p.usuario_id == current_user.id]
+    proveedores_vinculados = colegio.proveedores
 
     # 3. FILTRAR PROVEEDORES DISPONIBLES PARA EL SELECT (Los que aún no se vinculan)
     # Obtenemos los IDs de TODOS los proveedores vinculados para que no aparezcan en el select

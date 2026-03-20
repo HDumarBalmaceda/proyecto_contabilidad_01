@@ -132,37 +132,51 @@
                 </button>
             </div>
             <div class="card-body p-2">
-                <ul class="list-group list-group-flush" id="listaProveedores" style="max-height: 150px; overflow-y: auto;">
-                    {% if proveedores_vinculados %}
-                        {% for prov in proveedores_vinculados %}
-                            <li class="list-group-item d-flex justify-content-between align-items-center px-2 bg-transparent py-1 border-bottom">
-                                <div class="overflow-hidden me-2">
-                                    <div class="fw-bold mb-0 text-truncate small" style="max-width: 150px;">
-                                        {{ prov.primer_nombre }} {{ prov.primer_apellido }}
-                                    </div>
-                                    <small class="text-muted d-block" style="font-size: 0.7rem;">NIT: {{ prov.documento }}</small>
-                                </div>
-                                <div class="d-flex gap-1">
-                                    <button class="btn btn-light btn-sm text-info p-0 border d-flex align-items-center justify-content-center" 
-                                            style="width: 24px; height: 24px;"
-                                            onclick="verDetalleProveedor('{{ prov.id }}')"> 
-                                        <i class="bi bi-eye" style="font-size: 0.75rem;"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-light btn-sm text-danger p-0 border d-flex align-items-center justify-content-center" 
-                                            style="width: 24px; height: 24px;"
-                                            onclick="confirmarDesvinculacion('{{ colegio.id }}', '{{ prov.id }}', '{{ prov.primer_nombre }} {{ prov.primer_apellido }}')">
-                                        <i class="bi bi-trash" style="font-size: 0.75rem;"></i>
-                                    </button>
-                                </div>
-                            </li>
-                        {% endfor %}
-                    {% else %}
-                        <li class="list-group-item text-center py-3 border-0">
-                            <p class="text-muted mb-0" style="font-size: 0.75rem;">No hay proveedores vinculados.</p>
-                        </li>
-                    {% endif %}
-                </ul>
-            </div>
+    <ul class="list-group list-group-flush" id="listaProveedores" style="max-height: 150px; overflow-y: auto;">
+        {% if proveedores_vinculados %}
+            {% for prov in proveedores_vinculados %}
+            <li class="list-group-item d-flex justify-content-between align-items-center px-2 bg-transparent py-1 border-bottom">
+                <div class="overflow-hidden me-2">
+                    <div class="fw-bold mb-0 text-truncate small" style="max-width: 150px;" title="{{ prov.razon_social or prov.primer_nombre }}">
+                        {# --- LÓGICA DE VISUALIZACIÓN MEJORADA --- #}
+                        {% if prov.razon_social and prov.razon_social.strip() %}
+                            {{ prov.razon_social }}
+                        {% elif prov.primer_nombre and prov.primer_nombre.strip() %}
+                            {{ prov.primer_nombre }} {{ prov.primer_apellido | default('', true) }}
+                        {% else %}
+                            <span class="text-danger italic">Sin Nombre Identificado</span>
+                        {% endif %}
+                    </div>
+                    <small class="text-muted d-block" style="font-size: 0.7rem;">
+                        NIT: {{ prov.documento }}{% if prov.dv %}-{{ prov.dv }}{% endif %}
+                    </small>
+                </div>
+                <div class="d-flex gap-1">
+                    <button class="btn btn-light btn-sm text-info p-0 border d-flex align-items-center justify-content-center" 
+                            style="width: 24px; height: 24px;"
+                            onclick="verDetalleProveedor('{{ prov.id }}')"
+                            title="Ver detalles"> 
+                        <i class="bi bi-eye" style="font-size: 0.75rem;"></i>
+                    </button>
+                    <button type="button" 
+        class="btn btn-light btn-sm text-danger p-0 border d-flex align-items-center justify-content-center btn-desvincular" 
+        style="width: 24px; height: 24px;"
+        data-colegio-id="{{ colegio.id }}"
+        data-proveedor-id="{{ prov.id }}"
+        data-nombre="{{ prov.razon_social or prov.primer_nombre or 'Proveedor' }}"
+        title="Desvincular">
+    <i class="bi bi-trash" style="font-size: 0.75rem;"></i>
+</button>
+                </div>
+            </li>
+            {% endfor %}
+        {% else %}
+            <li class="list-group-item text-center py-3 border-0">
+                <p class="text-muted mb-0" style="font-size: 0.75rem;">No hay proveedores vinculados.</p>
+            </li>
+        {% endif %}
+    </ul>
+</div>
         </div>
     </div>
 </div>

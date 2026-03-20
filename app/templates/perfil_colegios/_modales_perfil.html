@@ -5,45 +5,34 @@
                 <h6 class="modal-title"><i class="bi bi-search me-2"></i>Vincular Proveedor</h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+            
             <form id="formVincular" action="{{ url_for('colegios.vincular_proveedor', colegio_id=colegio.id) }}" method="POST">
                 <div class="modal-body p-4">
-                    {% if todos_los_proveedores %}
-                        <div class="input-group mb-3">
-                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-                            <input type="text" id="busquedaProveedor" class="form-control border-start-0 ps-0 shadow-none" placeholder="Buscar por nombre o NIT...">
-                        </div>
+                    <div class="input-group mb-3">
+                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" id="busquedaProveedor" class="form-control border-start-0 ps-0 shadow-none" 
+                               placeholder="Escribe nombre o NIT para buscar...">
+                    </div>
 
-                        <label class="form-label fw-bold small text-muted text-uppercase">Seleccionar Proveedor</label>
-                        <select class="form-select shadow-sm" name="proveedor_id" id="selectProveedor" size="5" required>
-                            {% for p in todos_los_proveedores %}
-                                <option value="{{ p.id }}" class="opcion-proveedor">
-                                    {{ p.primer_nombre }} {{ p.primer_apellido }} | NIT: {{ p.documento }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                        <div class="form-text mt-2 small">
-                            Mostrando los registros más recientes primero.
-                        </div>
-                    {% else %}
-                        <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-0">
-                            <i class="bi bi-exclamation-triangle-fill me-2 fs-4"></i>
-                            <div>No hay proveedores disponibles para vincular.</div>
-                        </div>
-                    {% endif %}
+                    <label class="form-label fw-bold small text-muted text-uppercase">Seleccionar Proveedor</label>
+                    
+                    <select class="form-select shadow-sm" name="proveedor_id" id="selectProveedor" size="5" required>
+                        <option value="" disabled selected>Inicia la búsqueda arriba...</option>
+                    </select>
+
+                    <div id="infoBusqueda" class="form-text mt-2 small">
+                        <i class="bi bi-info-circle me-1"></i> Se buscará en la base de datos global.
+                    </div>
                 </div>
+
                 <div class="modal-footer bg-light py-2">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-                    {% if todos_los_proveedores %}
-                        <button type="submit" class="btn btn-success btn-sm px-3 shadow-sm">Confirmar</button>
-                    {% endif %}
+                    <button type="submit" class="btn btn-success btn-sm px-3 shadow-sm">Confirmar Vinculación</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
-
-
-
 
 
 <!--Modal para detalle de proveedores -->
