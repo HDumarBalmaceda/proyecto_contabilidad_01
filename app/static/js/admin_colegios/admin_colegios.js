@@ -40,12 +40,18 @@ function renderizarTablaColegios(colegios) {
             : `<span class="badge bg-danger text-white px-3"><i class="bi bi-person-x-fill"></i> SIN ASIGNAR</span>`;
 
         const dataAttrs = `
-            data-id="${col.id}" data-nombre="${col.nombre}" data-nit="${col.nit}"
-            data-direccion="${col.direccion || ''}" data-telefono="${col.telefono || ''}"
-            data-municipio="${col.municipio || ''}" data-rector_nombre="${col.rector_nombre}"
-            data-rector_documento="${col.rector_documento}" data-rector_tipo_documento="${col.rector_tipo_documento}"
-            data-logo="${col.logo_path}" data-firma="${col.firma_path}"
-        `;
+                data-id="${col.id}" 
+                data-nombre="${col.nombre || ''}" 
+                data-nit="${col.nit || ''}"
+                data-direccion="${col.direccion || ''}" 
+                data-telefono="${col.telefono || ''}"
+                data-municipio="${col.municipio || ''}" 
+                data-rector_nombre="${col.rector_nombre || ''}"
+                data-rector_documento="${col.rector_documento || ''}" 
+                data-rector_tipo_documento="${col.rector_tipo_documento || 'CC'}"
+                data-logo="${col.logo_path || ''}" 
+                data-firma="${col.firma_path || ''}"
+         `.trim(); // Usamos trim para limpiar espacios extras
 
         tbody.insertAdjacentHTML('beforeend', `
             <tr>
@@ -142,50 +148,107 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Lógica del Modal (Editar vs Nuevo)
     const modal = document.getElementById('crearColegioModal');
-    if (modal) {
-        modal.addEventListener('show.bs.modal', function(e) {
-            const btn = e.relatedTarget;
-            const form = document.getElementById('formCrearColegio') || document.getElementById('formColegio');
-            const id = btn?.getAttribute('data-id');
-            const modalTitle = document.getElementById('modalTitle');
-            const btnGuardar = document.getElementById('btn-guardar-nuevo');
-            const btnActualizar = document.getElementById('btn-actualizar-edit');
 
-            if (id) {
-                // MODO EDICIÓN
-                if (modalTitle) modalTitle.textContent = "Editar Colegio";
-                form.action = `/colegios/editar/${id}`;
-                if (btnGuardar) btnGuardar.classList.add('d-none');
-                if (btnActualizar) btnActualizar.classList.remove('d-none');
+if (modal) {
+    modal.addEventListener('show.bs.modal', function(e) {
+        const btn = e.relatedTarget;
+        const form = document.getElementById('formCrearColegio') || document.getElementById('formColegio');
+        const id = btn?.getAttribute('data-id');
+        const modalTitle = document.getElementById('modalTitle');
+        const btnGuardar = document.getElementById('btn-guardar-nuevo');
+        const btnActualizar = document.getElementById('btn-actualizar-edit');
 
-                const fields = ['nombre', 'nit', 'direccion', 'telefono', 'municipio', 'rector_nombre', 'rector_documento', 'rector_tipo_documento'];
-                fields.forEach(f => {
-                    const el = document.getElementById(f);
-                    if (el) el.value = btn.getAttribute(`data-${f}`) || '';
-                });
+        console.log("--- 🕵️ DEBUG MODAL ABIERTO ---");
+        console.log("¿Existe ID?:", id ? `SÍ (ID: ${id})` : "NO (Modo Registro)");
 
-                // Mostrar imágenes actuales si existen
-                const logo = btn.getAttribute('data-logo');
-                if (logo) {
-                    const pLogo = document.getElementById('previewLogo');
-                    pLogo.src = `/static/uploads/${logo}`;
-                    pLogo.classList.remove('d-none');
-                    document.getElementById('logoText')?.classList.add('d-none');
+        if (id) {
+            // --- MODO EDICIÓN ---
+            if (modalTitle) modalTitle.textContent = "Editar Colegio";
+            form.action = `/colegios/editar/${id}`;
+            
+            if (btnGuardar) btnGuardar.classList.add('d-none');
+            if (btnActualizar) btnActualizar.classList.remove('d-none');
+
+            const fields = ['nombre', 'nit', 'direccion', 'telefono', 'municipio', 'rector_nombre', 'rector_documento', 'rector_tipo_documento'];
+            fields.forEach(f => {
+                const el = document.getElementById(f);
+                const val = btn.getAttribute(`data-${f}`);
+                if (el) {
+                    el.value = (val && val !== 'None') ? val : '';
+                    console.log(`✅ Campo [${f}] llenado con:`, el.value);
                 }
-            } else {
-                // MODO NUEVO
-                if (modalTitle) modalTitle.textContent = "Registrar Nuevo Colegio";
-                form.reset();
-                form.action = "/colegios/crear";
-                if (btnGuardar) btnGuardar.classList.remove('d-none');
-                if (btnActualizar) btnActualizar.classList.add('d-none');
-                
-                // Limpiar vistas previas
-                document.querySelectorAll('.upload-box img').forEach(img => img.classList.add('d-none'));
-                document.querySelectorAll('.upload-box span').forEach(span => span.classList.remove('d-none'));
+            });
+
+            // Debug de imágenes en edición
+            const logo = btn.getAttribute('data-logo');
+            const firma = btn.getAttribute('data-firma'); // Verifica que tu botón tenga data-firma
+            
+            if (logo && logo !== 'None') {
+                console.log("🖼️ Logo actual encontrado:", logo);
+                const pLogo = document.getElementById('previewLogo');
+                pLogo.src = `/static/uploads/${logo}`;
+                pLogo.classList.remove('d-none');
+                document.getElementById('logoText')?.classList.add('d-none');
             }
-        });
-    }
+            
+            if (firma && firma !== 'None') {
+                console.log("✍️ Firma actual encontrada:", firma);
+                const pFirma = document.getElementById('previewFirma');
+                pFirma.src = `/static/uploads/${firma}`;
+                pFirma.classList.remove('d-none');
+                document.getElementById('firmaText')?.classList.add('d-none');
+            }
+
+        } else {
+            // --- MODO NUEVO ---
+            console.log("✨ Limpiando formulario para nuevo colegio...");
+            if (modalTitle) modalTitle.textContent = "Registrar Nuevo Colegio";
+            
+            form.reset();
+            form.action = "/colegios/crear";
+            
+            // Forzamos valores limpios
+            const selTipo = document.getElementById('rector_tipo_documento');
+            if (selTipo) selTipo.value = "CC"; 
+
+            const inpDoc = document.getElementById('rector_documento');
+            if (inpDoc) inpDoc.value = ""; 
+
+            if (btnGuardar) btnGuardar.classList.remove('d-none');
+            if (btnActualizar) btnActualizar.classList.add('d-none');
+            
+            // Limpiar visualmente las cajas de upload
+            document.querySelectorAll('.upload-box img').forEach(img => {
+                img.src = "#";
+                img.classList.add('d-none');
+            });
+            document.querySelectorAll('.upload-box span').forEach(span => span.classList.remove('d-none'));
+            
+            // Limpiar inputs de archivo físicamente
+            document.getElementById('logo_path').value = "";
+            document.getElementById('firma_path').value = "";
+        }
+    });
+}
+
+// --- 🚀 INTERCEPTOR CRÍTICO: ¿Qué se está enviando realmente? ---
+const formColegio = document.getElementById('formCrearColegio') || document.getElementById('formColegio');
+if (formColegio) {
+    formColegio.addEventListener('submit', function(e) {
+        console.log("--- 📤 ENVIANDO FORMULARIO AL SERVIDOR ---");
+        const formData = new FormData(this);
+        
+        for (let [key, value] of formData.entries()) {
+            if (value instanceof File) {
+                console.log(`📁 ARCHIVO [${key}]: ${value.name} (${value.size} bytes)`);
+            } else {
+                console.log(`🆔 CAMPO [${key}]:`, value);
+            }
+        }
+        
+        // Si el tamaño de la firma es 0, sabremos que el problema es el input
+    });
+}
 
     // Eliminar
     document.addEventListener('click', function(e) {

@@ -179,11 +179,15 @@ function dibujarPaginacion(data) {
 }
 
 document.addEventListener('click', function (e) {
-    // LÓGICA ELIMINAR
+    const form = document.getElementById('usuarioForm');
+    
+    // --- LÓGICA ELIMINAR ---
     const btnEliminar = e.target.closest('.btn-eliminar-usuario');
     if (btnEliminar) {
         const nombre = btnEliminar.getAttribute('data-nombre');
         const url = btnEliminar.getAttribute('data-url');
+        const tokenValue = document.querySelector('input[name="csrf_token"]')?.value;
+
         Swal.fire({
             title: `¿Eliminar a ${nombre}?`,
             text: "Se borrarán sus registros asociados.",
@@ -193,25 +197,36 @@ document.addEventListener('click', function (e) {
             confirmButtonText: 'Sí, eliminar'
         }).then((result) => {
             if (result.isConfirmed) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = url;
-                document.body.appendChild(form);
-                form.submit();
+                const f = document.createElement('form');
+                f.method = 'POST';
+                f.action = url;
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrf_token';
+                csrfInput.value = tokenValue;
+                f.appendChild(csrfInput);
+                document.body.appendChild(f);
+                f.submit();
             }
         });
     }
 
-    // LÓGICA EDITAR
+    // --- LÓGICA EDITAR ---
     const btnEditar = e.target.closest('.btn-editar-usuario');
     if (btnEditar) {
         const contenedorPass = document.getElementById('contenedor-password');
         const passInput = document.getElementById('password');
+        
         if (contenedorPass) contenedorPass.style.display = 'block';
-        if (passInput) passInput.required = false;
+        if (passInput) {
+            passInput.required = false;
+            passInput.value = ""; // Limpiar por seguridad
+        }
 
         document.getElementById('modalTitle').innerText = "Editar Usuario";
-        document.getElementById('usuarioForm').action = "/admin/usuarios/editar"; 
+        
+        // CORRECCIÓN: Usar la ruta completa que espera tu controlador
+        form.action = "/admin/usuarios/editar"; 
         
         document.getElementById('usuario_id').value = btnEditar.dataset.id;
         document.getElementById('username').value = btnEditar.dataset.username;
@@ -223,16 +238,25 @@ document.addEventListener('click', function (e) {
         new bootstrap.Modal(document.getElementById('crearUsuarioModal')).show();
     }
 
-    // LÓGICA NUEVO USUARIO
+    // --- LÓGICA NUEVO USUARIO ---
     const btnNuevo = e.target.closest('.btn-nuevo-usuario');
     if (btnNuevo) {
+        // 1. Guardar el token antes de resetear
+        const tokenInput = form.querySelector('input[name="csrf_token"]');
+        const tokenValue = tokenInput ? tokenInput.value : "";
+
+        form.reset(); 
+        
+        // 2. Restaurar el token inmediatamente
+        if (tokenInput) tokenInput.value = tokenValue;
+
         const contenedorPass = document.getElementById('contenedor-password');
         if (contenedorPass) contenedorPass.style.display = 'none';
         
         document.getElementById('modalTitle').innerText = "Registrar Nuevo Usuario";
-        const form = document.getElementById('usuarioForm');
-        form.reset();
-        form.action = "/admin/usuarios/crear";
         document.getElementById('usuario_id').value = "";
+        form.action = "/admin/usuarios/crear"; // Ruta de creación
+
+        new bootstrap.Modal(document.getElementById('crearUsuarioModal')).show();
     }
 });

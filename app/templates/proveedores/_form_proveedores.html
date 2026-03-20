@@ -8,6 +8,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="formProveedor" action="{{ url_for('proveedores.listar_proveedores') }}" method="POST">
+                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-body">
                     <div class="row g-2"> 
                         <div class="col-md-3">

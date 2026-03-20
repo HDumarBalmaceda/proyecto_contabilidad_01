@@ -413,6 +413,9 @@ def colegios_json_paginado():
             "telefono": col.telefono,
             "rector_nombre": col.rector_nombre or 'No asignado',
             "logo_path": col.logo_path or '',
+            "rector_documento": col.rector_documento or '', 
+            "rector_tipo_documento": col.rector_tipo_documento or 'CC',
+            "firma_path": col.firma_path or '',
             # Info del contador (útil para el admin, transparente para el contador)
             "contador_nombre": col.contador.username if col.contador else 'No asignado'
         })

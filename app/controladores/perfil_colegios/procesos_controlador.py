@@ -10,6 +10,9 @@ procesos_bp = Blueprint('procesos', __name__)
 @login_required
 def guardar_proceso(colegio_id):
     try:
+        data = request.get_json()
+        print(f"DEBUG: Datos recibidos -> {data}") # ESTO APARECERÁ EN TU TERMINAL NEGRA
+
         colegio = Colegio.query.get_or_404(colegio_id)
         
         # SEGURIDAD: Solo el admin o el dueño del colegio

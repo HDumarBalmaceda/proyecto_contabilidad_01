@@ -26,6 +26,7 @@
                    {% endwith %}
 
                 <form id="formCrearColegio" action="{{ url_for('colegios.crear_colegio') }}" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-4">
                         <h6 class="text-primary fw-bold border-bottom pb-2 mb-3">
                             <i class="bi bi-info-circle-fill me-1"></i> Información Institucional
@@ -64,15 +65,14 @@
                                 <input type="text" class="form-control form-control-sm" id="rector_nombre" name="rector_nombre" placeholder="Nombre del rector">
                             </div>
                             <div class="col-md-3">
-                                <label for="rector_tipo_documento" class="form-label small fw-bold mb-1">Tipo Doc.</label>
-                                <select class="form-select form-select-sm" id="rector_tipo_documento" name="rector_tipo_documento" required>
-                                    <option value="CC">Cédula (CC)</option>
-                                    <option value="CE">Extranjería (CE)</option>
-                                    <option value="TI">Tarjeta Identidad (TI)</option>
-                                    <option value="PAS">Pasaporte (PAS)</option>
-                                    <option value="OTRO">Otro</option>
-                                </select>
-                            </div>
+    <label for="rector_tipo_documento" class="form-label small fw-bold mb-1">Tipo Doc.</label>
+    <select class="form-select form-select-sm" id="rector_tipo_documento" name="rector_tipo_documento" required>
+        <option value="CC" selected>Cédula (CC)</option>
+        <option value="CE">Extranjería (CE)</option>
+        <option value="TI">Tarjeta Identidad (TI)</option>
+        <option value="PAS">Pasaporte (PAS)</option>
+    </select>
+</div>
                             <div class="col-md-3">
                                 <label for="rector_documento" class="form-label small fw-bold mb-1">Documento</label>
                                 <input type="text" class="form-control form-control-sm" id="rector_documento" name="rector_documento" placeholder="Número">
@@ -115,7 +115,7 @@
                        <button type="submit" id="btn-guardar-nuevo" form="formCrearColegio" class="btn btn-primary px-4 fw-bold">
                              <i class="bi bi-save2 me-1"></i> Guardar Colegio
                               </button>
-    
+                       
                        <button type="submit" id="btn-actualizar-edit" form="formCrearColegio" class="btn btn-warning px-4 fw-bold d-none">
                                    <i class="bi bi-pencil-square me-1"></i> Actualizar Cambios
                                 </button>

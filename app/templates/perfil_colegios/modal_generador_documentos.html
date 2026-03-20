@@ -25,10 +25,10 @@
                 </ul>
 
                 <form id="formExpedienteCompleto" class="p-4">
-                        <input type="hidden" id="colegio_id_input" value="{{ colegio.id if colegio else '' }}">
-                           <input type="hidden" id="modalVigenciaInput" name="vigencia">
-    
-                            <input type="hidden" id="proceso_id_hidden" name="proceso_id_hidden">
+                    <input type="hidden" id="colegio_id_input" name="colegio_id" value="{{ colegio.id if colegio else '' }}">
+                    <input type="hidden" id="modalVigenciaInput" name="vigencia" value="2026">
+                    <input type="hidden" id="proceso_id_hidden" name="proceso_id">
+                    <input type="hidden" id="gran_total_val" name="gran_total" value="0">
     
                                   <div class="tab-content">
                         

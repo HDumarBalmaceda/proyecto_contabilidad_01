@@ -390,7 +390,8 @@ async function procesarDescargaEfectiva(procesoId, opciones) {
 }
 
 async function eliminarProcesoHistorial(idProceso) {
-    const { value: confirmacion } = await Swal.fire({
+    // 1. Pedir confirmación
+    const { isConfirmed } = await Swal.fire({
         title: '¿Estás seguro?',
         text: "Esta acción no se puede deshacer y eliminará todos los ítems asociados.",
         icon: 'warning',
@@ -401,7 +402,11 @@ async function eliminarProcesoHistorial(idProceso) {
         cancelButtonText: 'Cancelar'
     });
 
-    if (confirmacion) {
+    if (isConfirmed) {
+        // 2. CAPTURAR EL TOKEN (Vital para que Flask acepte el DELETE)
+        const csrfToken = document.querySelector('input[name="csrf_token"]')?.value 
+                          || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
         try {
             // Mostrar carga
             Swal.fire({
@@ -413,32 +418,45 @@ async function eliminarProcesoHistorial(idProceso) {
             const response = await fetch(`/procesos/eliminar_proceso/${idProceso}`, {
                 method: 'DELETE',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken // <-- AQUÍ SE AGREGA EL TOKEN
                 }
             });
+
+            // Manejo por si el servidor responde error (400, 403, 500)
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `Error del servidor: ${response.status}`);
+            }
 
             const result = await response.json();
 
             if (result.success) {
-                Swal.fire('¡Eliminado!', result.message, 'success').then(() => {
-                    // Refrescar el historial después de eliminar
-                    // idColegioActual debe estar disponible globalmente
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Eliminado!',
+                    text: result.message || 'El proceso ha sido borrado.',
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => {
+                    // Refrescar el historial
                     if (typeof abrirHistorial === 'function') {
-                        abrirHistorial(idColegioActual, paginaActual);
+                        // Usamos las globales que ya tienes
+                        const pg = typeof paginaActual !== 'undefined' ? paginaActual : 1;
+                        abrirHistorial(idColegioActual, pg);
                     } else {
-                        location.reload(); // Opción de respaldo
+                        location.reload();
                     }
                 });
             } else {
-                throw new Error(result.message);
+                throw new Error(result.message || "No se pudo eliminar.");
             }
         } catch (error) {
             console.error("Error:", error);
-            Swal.fire('Error', 'No se pudo eliminar el proceso: ' + error.message, 'error');
+            Swal.fire('Error', error.message, 'error');
         }
     }
 }
-
 // --- EXPOSICIÓN GLOBAL PARA QUE LOS BOTONES ONCLICK FUNCIONEN ---
 window.abrirHistorial = abrirHistorial;
 window.alternarOrden = alternarOrden;

@@ -27,6 +27,7 @@
                 </div>
                 <div class="card-body">
                     <form action="{{ url_for('admin.panel_enlace') }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         
                         <div class="mb-4">
                             <div class="d-flex justify-content-between align-items-center mb-2">

@@ -90,60 +90,65 @@ window.prepararEdicion = function(colegio) {
     modalInstance.show();
 };
 
-    // --- C. ENVÍO INTELIGENTE ---
-    if (formColegio) {
-        formColegio.addEventListener("submit", function(e) {
-            
-            // FILTRO CRUCIAL:
-            // Si el botón de actualizar está oculto (d-none), significa que estamos CREANDO.
-            // En ese caso, NO ejecutamos e.preventDefault() y dejamos que el navegador
-            // haga el envío tradicional hacia /colegios/crear.
-            if (btnActualizarEdit && btnActualizarEdit.classList.contains('d-none')) {
-                return; // Salimos de la función y permitimos el submit normal
+    // --- C. ENVÍO INTELIGENTE (ACTUALIZADO CON SEGURIDAD) ---
+if (formColegio) {
+    formColegio.addEventListener("submit", function(e) {
+        
+        // FILTRO CRUCIAL:
+        // Si el botón de actualizar está oculto (d-none), significa que estamos CREANDO.
+        if (btnActualizarEdit && btnActualizarEdit.classList.contains('d-none')) {
+            return; // Salimos y permitimos el submit normal (Flask-WTF leerá el input hidden solo)
+        }
+
+        // Si llegamos aquí, es porque SÍ estamos EDITANDO
+        e.preventDefault();
+
+        Swal.fire({ 
+            title: 'Actualizando...', 
+            text: 'Guardando los cambios del colegio',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); } 
+        });
+
+        // 1. Capturamos el token del input que ya agregaste al HTML
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        
+        // 2. Preparamos el FormData (incluye archivos: logo y firma)
+        const formData = new FormData(this);
+
+        // 3. Enviamos con el "Ticket" en los Headers
+        fetch(this.action, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken // <--- REFUERZO DE SEGURIDAD PARA AJAX
+            },
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok || response.headers.get("content-type").includes("text/html")) {
+                throw new Error("Respuesta no válida del servidor");
             }
-
-            // Si llegamos aquí, es porque SÍ estamos EDITANDO (el botón de actualizar es visible)
-            e.preventDefault();
-
-            Swal.fire({ 
-                title: 'Actualizando...', 
-                text: 'Guardando los cambios del colegio',
-                allowOutsideClick: false,
-                didOpen: () => { Swal.showLoading(); } 
-            });
-
-            const formData = new FormData(this);
-
-            fetch(this.action, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                // Si recibimos un HTML (error 404, 500 o redirección), lanzamos error para el catch
-                if (!response.ok || response.headers.get("content-type").includes("text/html")) {
-                    throw new Error("Respuesta no válida del servidor");
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: '¡Actualizado!',
-                        text: data.message
-                    }).then(() => { location.reload(); });
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: data.message });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
                 Swal.fire({
-                    icon: 'error',
-                    title: 'Error de proceso',
-                    text: 'Asegúrate de estar editando y no creando. Si el problema persiste, contacta al admin.'
-                });
+                    icon: 'success',
+                    title: '¡Actualizado!',
+                    text: data.message
+                }).then(() => { location.reload(); });
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error', text: data.message });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de proceso',
+                text: 'Hubo un problema al validar el ticket de seguridad o procesar los archivos.'
             });
         });
-    }
+    });
+  }
 });

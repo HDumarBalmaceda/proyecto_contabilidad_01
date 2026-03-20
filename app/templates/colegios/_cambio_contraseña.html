@@ -19,6 +19,7 @@
                 </div>
                 
                 <form id="formCambioPassword" action="{{ url_for('usuarios.cambio_obligatorio') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Nueva Contraseña</label>
                         <input type="password" id="n_pass" name="password" class="form-control" placeholder="Mínimo 6 caracteres" required>

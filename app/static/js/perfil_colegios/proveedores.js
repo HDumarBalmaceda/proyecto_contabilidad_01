@@ -1,22 +1,31 @@
+/**
+ * ARCHIVO: proveedores.js
+ * MODIFICADO: Agregada seguridad CSRF para Vincular y Desvincular
+ */
+
+// Función auxiliar para obtener el token de seguridad de forma centralizada
+const getCSRFToken = () => {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') : '';
+};
+
 let timeoutBusqueda;
 
+// --- 1. BUSCADOR ASÍNCRONO ---
 document.addEventListener('input', function(e) {
     if (e.target && e.target.id === 'busquedaProveedor') {
         clearTimeout(timeoutBusqueda);
-        
         const texto = e.target.value.trim();
         const select = document.getElementById('selectProveedor');
 
-        // Si borran la búsqueda, podemos limpiar el select o dejarlo como está
         if (texto.length < 2) return;
 
         timeoutBusqueda = setTimeout(async () => {
             try {
-                // Reutilizamos tu ruta: /proveedores/proveedores_json_paginado?q=texto
                 const response = await fetch(`/proveedores/proveedores_json_paginado?q=${texto}`);
                 const data = await response.json();
 
-                select.innerHTML = ''; // Limpiar opciones anteriores
+                select.innerHTML = ''; 
 
                 if (data.proveedores.length === 0) {
                     const opt = document.createElement('option');
@@ -27,12 +36,8 @@ document.addEventListener('input', function(e) {
                     data.proveedores.forEach(p => {
                         const option = document.createElement('option');
                         option.value = p.id;
-                        option.className = 'opcion-proveedor';
-                        
-                        // Lógica para mostrar nombre o razón social (como lo tienes en el controlador)
                         const nombreMostrar = p.razon_social ? p.razon_social : `${p.primer_nombre} ${p.primer_apellido}`;
                         option.textContent = `${nombreMostrar} | NIT: ${p.documento}`;
-                        
                         select.appendChild(option);
                     });
                 }
@@ -43,19 +48,7 @@ document.addEventListener('input', function(e) {
     }
 });
 
-document.addEventListener('click', function(e) {
-    if (e.target.closest('.btn-desvincular')) {
-        const btn = e.target.closest('.btn-desvincular');
-        const colId = btn.dataset.colegioId;
-        const provId = btn.dataset.proveedorId;
-        const nombre = btn.dataset.nombre;
-
-        // Llamas a tu función original
-        confirmarDesvinculacion(colId, provId, nombre);
-    }
-});
-
-
+// --- 2. VINCULAR PROVEEDOR (POST) ---
 document.addEventListener('DOMContentLoaded', function() {
     const formVincular = document.getElementById('formVincular');
 
@@ -63,41 +56,35 @@ document.addEventListener('DOMContentLoaded', function() {
         formVincular.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            // Mostrar estado de carga (opcional)
             const btnSubmit = this.querySelector('button[type="submit"]');
             const originalText = btnSubmit.innerHTML;
             btnSubmit.disabled = true;
-            btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Vinculando...';
+            btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Vinculando...';
 
             fetch(this.action, {
                 method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCSRFToken() // <--- SEGURIDAD AGREGADA
+                },
                 body: new FormData(this)
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) throw new Error("Error de validación CSRF o Servidor");
+                return response.json();
+            })
             .then(data => {
                 if (data.status === 'success') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: '¡Vinculado!',
-                        text: data.message,
-                        confirmButtonColor: '#198754'
-                    }).then(() => {
-                        location.reload(); // Recarga para ver al proveedor en la lista
-                    });
+                    Swal.fire({ icon: 'success', title: '¡Vinculado!', text: data.message })
+                    .then(() => location.reload());
                 } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: data.message,
-                        confirmButtonColor: '#d33'
-                    });
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.message });
                     btnSubmit.disabled = false;
                     btnSubmit.innerHTML = originalText;
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                Swal.fire('Error', 'No se pudo procesar la solicitud', 'error');
+                Swal.fire('Error', 'No se pudo procesar la solicitud (Falta Token CSRF)', 'error');
                 btnSubmit.disabled = false;
                 btnSubmit.innerHTML = originalText;
             });
@@ -105,69 +92,44 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Función para desvincular (ya queda lista para cuando la necesites)
+// --- 3. DESVINCULAR PROVEEDOR (POST) ---
 function confirmarDesvinculacion(colegioId, proveedorId, nombre) {
     Swal.fire({
         title: '¿Estás seguro?',
-        text: `Vas a desvincular a "${nombre}". Podrás vincularlo de nuevo más tarde.`,
+        text: `Vas a desvincular a "${nombre}".`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Sí, desvincular',
-        cancelButtonText: 'Cancelar'
+        confirmButtonText: 'Sí, desvincular'
     }).then((result) => {
         if (result.isConfirmed) {
             fetch(`/colegios/desvincular-proveedor/${colegioId}/${proveedorId}`, {
-                method: 'POST'
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCSRFToken() // <--- SEGURIDAD AGREGADA
+                }
             })
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    Swal.fire('Eliminado', data.message, 'success').then(() => {
-                        location.reload();
-                    });
+                    Swal.fire('Eliminado', data.message, 'success').then(() => location.reload());
+                } else {
+                    Swal.fire('Error', data.message, 'error');
                 }
+            })
+            .catch(error => {
+                Swal.fire('Error', 'No se pudo desvincular. El servidor rechazó la petición.', 'error');
             });
         }
     });
 }
 
-
-
-// Buscador en tiempo real dentro del modal
-document.addEventListener('input', function(e) {
-    if (e.target && e.target.id === 'busquedaProveedor') {
-        const inputBusqueda = e.target;
-        const textoBusqueda = inputBusqueda.value.toLowerCase();
-        const opciones = document.querySelectorAll('#selectProveedor option');
-        let coincidencias = 0;
-
-        opciones.forEach(option => {
-            const textoOpcion = option.text.toLowerCase();
-            
-            if (textoOpcion.includes(textoBusqueda)) {
-                option.classList.remove('opcion-oculta');
-                coincidencias++;
-            } else {
-                option.classList.add('opcion-oculta');
-            }
-        });
-
-        // Si no hay resultados, podrías mostrar un mensaje o simplemente dejar la lista vacía
-        console.log(`Búsqueda: ${textoBusqueda} - Coincidencias: ${coincidencias}`);
-    }
-});
-
-// DETALLES DE LOS PROVEEDORES 
+// --- 4. VER DETALLES (GET) ---
+// (Esta no necesita token porque es GET, pero la mantenemos igual)
 function verDetalleProveedor(id) {
     fetch(`/proveedores/obtener/${id}`)
-        .then(response => {
-            if (!response.ok) throw new Error('Error en la red');
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
-            // Mapeo directo a los IDs de tu modal
             document.getElementById('view_tipo_tercero').innerText = data.tipo_tercero;
             document.getElementById('view_documento_full').innerText = data.documento_full;
             document.getElementById('view_razon_social').innerText = data.razon_social;
@@ -182,13 +144,15 @@ function verDetalleProveedor(id) {
             document.getElementById('view_renta').innerText = data.renta;
             document.getElementById('view_banco').innerText = data.banco;
             document.getElementById('view_cuenta').innerText = data.cuenta;
-
-            // Mostrar el modal (usando el ID correcto: verProveedorModal)
             const myModal = new bootstrap.Modal(document.getElementById('verProveedorModal'));
             myModal.show();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            Swal.fire('Error', 'No se pudo cargar la información', 'error');
         });
 }
+
+// Delegación de eventos para botones de desvinculación
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.btn-desvincular')) {
+        const btn = e.target.closest('.btn-desvincular');
+        confirmarDesvinculacion(btn.dataset.colegioId, btn.dataset.proveedorId, btn.dataset.nombre);
+    }
+});

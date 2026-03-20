@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from app import db
 from app.modelos.models import Proveedor 
 from app.modelos.models import Colegio
@@ -8,8 +8,6 @@ from flask_login import login_required, current_user
 
 proveedores_bp = Blueprint('proveedores', __name__, url_prefix='/proveedores')
 
-from flask import session, jsonify # Asegúrate de importar session
-from app.modelos.models import Colegio # Y el modelo Colegio
 
 @proveedores_bp.route('/', methods=['GET', 'POST'])
 @login_required
@@ -19,10 +17,13 @@ def listar_proveedores():
     # --- LÓGICA DE PROCESAMIENTO (POST) ---
     if request.method == 'POST':
         documento = request.form.get('documento')
+        creado_nuevo = False  # Bandera para saber si se creó o ya existía
+        
         try:
             proveedor = Proveedor.query.filter_by(documento=documento).first()
 
             if not proveedor:
+                # 1. Crear el proveedor si no existe
                 proveedor = Proveedor(
                     usuario_id=current_user.id,
                     tipo_tercero=request.form.get('tipo_tercero'),
@@ -45,38 +46,50 @@ def listar_proveedores():
                 db.session.add(proveedor)
                 db.session.flush() 
                 mensaje_final = 'Proveedor registrado exitosamente.'
+                creado_nuevo = True
             else:
-                mensaje_final = 'Proveedor existente.'
+                # 2. Si ya existe, preparamos mensaje de error para el SweetAlert
+                mensaje_final = f'El proveedor con documento {documento} ya esta registrado.'
 
+            # 3. Vincular al colegio actual si es necesario
             if colegio_id:
                 colegio = Colegio.query.get(colegio_id)
                 if colegio and proveedor not in colegio.proveedores:
                     colegio.proveedores.append(proveedor)
             
             db.session.commit()
-            flash(mensaje_final, 'success')
+
+            # --- RESPUESTA PARA AJAX (FETCH) ---
+            if request.headers.get('X-CSRFToken') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    "status": "success" if creado_nuevo else "error",
+                    "message": mensaje_final
+                })
+
+            # Si es un envío de formulario tradicional
+            flash(mensaje_final, 'success' if creado_nuevo else 'warning')
+            return redirect(url_for('proveedores.listar_proveedores'))
 
         except Exception as e:
             db.session.rollback()
+            if request.headers.get('X-CSRFToken') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({"status": "error", "message": f"Error: {str(e)}"}), 500
+                
             flash(f'Error: {str(e)}', 'danger')
-        
-        return redirect(url_for('proveedores.listar_proveedores'))
+            return redirect(url_for('proveedores.listar_proveedores'))
 
-    # --- LÓGICA DE FILTRADO DE DATOS ---
+    # --- LÓGICA DE FILTRADO DE DATOS (GET) ---
     if current_user.rol == 'admin':
         proveedores = Proveedor.query.all()
-        # RENDERIZADO PARA EL ADMIN (La nueva vista con base.html)
         return render_template('admin_proveedor/admin_proveedor.html', proveedores=proveedores)
     
     else:
-        # Lógica para contadores
         if colegio_id:
             colegio = Colegio.query.get(colegio_id)
             proveedores = colegio.proveedores if colegio else []
         else:
             proveedores = Proveedor.query.filter_by(usuario_id=current_user.id).all()
         
-        # RENDERIZADO PARA EL CONTADOR (La vista original/específica)
         return render_template('proveedores/proveedores.html', proveedores=proveedores)
 
 @proveedores_bp.route('/editar/<int:id>', methods=['POST'])

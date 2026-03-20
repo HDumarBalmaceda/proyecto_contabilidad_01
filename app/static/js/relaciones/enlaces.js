@@ -1,27 +1,45 @@
-setTimeout(function() {
-        let alerts = document.querySelectorAll('.alert');
-        alerts.forEach(function(alert) {
-            let bsAlert = new bootstrap.Alert(alert);
-            bsAlert.close();
-        });
-    }, 5000); // 5 segundos
-
-
-
 /**
- * enlaces.js - Gestión de asignación de colegios a contadores
+ * enlaces.js - Gestión de asignación con inyección de Token CSRF
  */
 
 // Estado global del módulo
 let paginaAsignados = 1;
 let busquedaAsignados = "";
 
+// 0. Función para cerrar alertas automáticamente (la mantuve igual)
+setTimeout(function() {
+    let alerts = document.querySelectorAll('.alert');
+    alerts.forEach(function(alert) {
+        let bsAlert = new bootstrap.Alert(alert);
+        bsAlert.close();
+    });
+}, 5000);
+
 document.addEventListener("DOMContentLoaded", function() {
     // 1. Inicializar buscadores locales (Izquierda)
     initBuscadorLocal('buscarContadores', '.item-contador', '.nombre-contador');
     initBuscadorLocal('buscarLibres', '.item-colegio-libre', '.nombre-col');
 
-    // 2. Inicializar buscador remoto (Derecha - con debounce)
+    // --- NUEVA LÓGICA DE TOKEN PARA EL FORMULARIO ---
+    const formVinculacion = document.querySelector('form[action*="panel_enlace"]');
+    if (formVinculacion) {
+        formVinculacion.addEventListener('submit', function() {
+            // Buscamos el token del meta tag que ya tienes en el base.html
+            const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            
+            // Si no existe el input de CSRF dentro del form, lo creamos rápido
+            let csrfInput = formVinculacion.querySelector('input[name="csrf_token"]');
+            if (!csrfInput) {
+                csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrf_token';
+                formVinculacion.appendChild(csrfInput);
+            }
+            csrfInput.value = token;
+        });
+    }
+
+    // 2. Inicializar buscador remoto (Derecha)
     const inputAsignados = document.getElementById('buscarAsignados');
     let timer;
     if (inputAsignados) {
@@ -29,21 +47,18 @@ document.addEventListener("DOMContentLoaded", function() {
             clearTimeout(timer);
             busquedaAsignados = this.value;
             timer = setTimeout(() => {
-                paginaAsignados = 1; // Resetear a página 1 al buscar
+                paginaAsignados = 1; 
                 cargarAsignados();
             }, 400);
         });
     }
 
-    // 3. Carga inicial de la tabla derecha
+    // 3. Carga inicial
     cargarAsignados();
 });
 
 /**
- * Filtra elementos existentes en el DOM (Lógica para la columna izquierda)
- * @param {string} inputId - ID del campo de texto
- * @param {string} itemSelector - Clase del contenedor del item
- * @param {string} textSelector - Clase donde reside el texto a comparar
+ * Filtra elementos existentes en el DOM
  */
 function initBuscadorLocal(inputId, itemSelector, textSelector) {
     const input = document.getElementById(inputId);
@@ -82,7 +97,7 @@ async function cargarAsignados() {
 }
 
 /**
- * Dibuja las filas en la tabla de asignados
+ * Dibuja las filas en la tabla de asignados (mantiene el confirm original)
  */
 function renderizarTabla(colegios) {
     const tbody = document.getElementById('tbodyAsignados');
@@ -118,37 +133,17 @@ function renderizarTabla(colegios) {
     });
 }
 
-/**
- * Dibuja los botones de paginación
- */
 function renderizarPaginacion(total, actual) {
     const contenedor = document.getElementById('paginacionAsignados');
     contenedor.innerHTML = "";
-
     if (total <= 1) return;
 
     let html = `<nav><ul class="pagination pagination-sm mb-0">`;
-
-    // Botón Anterior
-    html += `
-        <li class="page-item ${actual === 1 ? 'disabled' : ''}">
-            <a class="page-link" href="#" onclick="cambiarPagina(event, ${actual - 1})">«</a>
-        </li>`;
-
-    // Páginas (puedes ajustar para mostrar solo un rango si hay muchas)
+    html += `<li class="page-item ${actual === 1 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="cambiarPagina(event, ${actual - 1})">«</a></li>`;
     for (let i = 1; i <= total; i++) {
-        html += `
-            <li class="page-item ${i === actual ? 'active' : ''}">
-                <a class="page-link" href="#" onclick="cambiarPagina(event, ${i})">${i}</a>
-            </li>`;
+        html += `<li class="page-item ${i === actual ? 'active' : ''}"><a class="page-link" href="#" onclick="cambiarPagina(event, ${i})">${i}</a></li>`;
     }
-
-    // Botón Siguiente
-    html += `
-        <li class="page-item ${actual === total ? 'disabled' : ''}">
-            <a class="page-link" href="#" onclick="cambiarPagina(event, ${actual + 1})">»</a>
-        </li>`;
-
+    html += `<li class="page-item ${actual === total ? 'disabled' : ''}"><a class="page-link" href="#" onclick="cambiarPagina(event, ${actual + 1})">»</a></li>`;
     html += `</ul></nav>`;
     contenedor.innerHTML = html;
 }

@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from app import db
 from app.modelos.models import Usuario, Colegio  
 from sqlalchemy import or_
-
+from flask_wtf.csrf import CSRFProtect
 # ESTA LÍNEA ES LA QUE FALTA:
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin/enlaces')
 
@@ -72,7 +72,8 @@ def asignados_json():
     if search:
         query = query.filter(or_(
             Colegio.nombre.ilike(f"%{search}%"),
-            Colegio.nit.ilike(f"%{search}%")
+            Colegio.nit.ilike(f"%{search}%"),
+            Usuario.nombre_completo.ilike(f"%{search}%")
         ))
 
     # Paginación

@@ -63,14 +63,13 @@ function cargarAniosModal() {
 // --- FUNCIONES GLOBALES (FUERA DE TODO BLOQUE) ---
 
 function abrirGeneradorDocs() {
-    // --- NUEVO: Ya no dependemos del selector del perfil ---
     const anioPredeterminado = 2026; 
 
-    // 1. Limpiamos el ID oculto (Esencial para que sea un proceso NUEVO y no una edición)
+    // 1. Limpiamos el ID oculto (FUNDAMENTAL para que no detecte edición)
     const inputIdOculto = document.getElementById('proceso_id_hidden');
     if (inputIdOculto) inputIdOculto.value = ""; 
 
-    // 2. Resetear Textos y Colores del Modal a modo "NUEVO"
+    // 2. Resetear Textos, Iconos y Botones al modo "NUEVO"
     const titulo = document.getElementById('tituloModalExpediente');
     const iconoTitulo = document.getElementById('iconoModalExpediente');
     const textoBtn = document.getElementById('textoBtnExpediente');
@@ -79,58 +78,66 @@ function abrirGeneradorDocs() {
     if (titulo) titulo.innerText = "Generar Nuevo Expediente";
     if (iconoTitulo) iconoTitulo.className = "bi bi-file-earmark-plus me-2 text-primary";
     if (textoBtn) textoBtn.innerText = "Generar Expediente";
-    if (btnAccion) btnAccion.className = "btn btn-success px-4";
-
-    // 3. Resetear el Formulario y la Tabla de Ítems
-    const formulario = document.getElementById('formExpedienteCompleto');
-    if (formulario) {
-        formulario.reset();
-        const cuerpoTabla = document.getElementById('cuerpoTablaItems');
-        if (cuerpoTabla) cuerpoTabla.innerHTML = '';
-        if (typeof agregarFilaItem === "function") agregarFilaItem();
+    if (btnAccion) {
+        btnAccion.className = "btn btn-success px-4";
+        // Reforzamos que el botón apunte a procesarExpediente
+        btnAccion.onclick = function() { procesarExpediente(); };
     }
 
-    // 4. Configurar la VIGENCIA predeterminada en el Modal
+    // 3. Resetear el Formulario y Limpieza de rastro manual
+    const formulario = document.getElementById('formExpedienteCompleto');
+    if (formulario) {
+        formulario.reset(); // Limpia inputs estándar
+
+        // --- REFUERZO DE LIMPIEZA ---
+        
+        // A. Vaciar la tabla de ítems y dejarla con una fila inicial limpia
+        const cuerpoTabla = document.getElementById('cuerpoTablaItems');
+        if (cuerpoTabla) {
+            cuerpoTabla.innerHTML = '';
+            if (typeof agregarFilaItem === "function") agregarFilaItem();
+        }
+
+        // B. Resetear el display del Gran Total (a veces el reset no lo limpia por ser readonly)
+        const displayTotal = document.getElementById('gran_total_display');
+        if (displayTotal) displayTotal.value = "0";
+
+        // C. Limpiar la guía de cálculo de fechas (el texto de ayuda del cronograma)
+        const guiaPlazo = document.getElementById('guia_plazo');
+        if (guiaPlazo) {
+            guiaPlazo.innerText = "Escribe el número de días para calcular la fecha final.";
+            guiaPlazo.className = "form-text text-muted";
+        }
+
+        // D. Habilitar todos los proveedores (por si quedaron bloqueados en una edición previa)
+        formulario.querySelectorAll('.select-proveedor').forEach(select => {
+            Array.from(select.options).forEach(opt => {
+                opt.disabled = false;
+                opt.style.color = '';
+            });
+        });
+    }
+
+    // 4. Configurar la VIGENCIA predeterminada
     const inputVigenciaModal = document.getElementById('modalVigenciaInput');
     const textoVigenciaModal = document.getElementById('anioTextoModal');
     
     if (inputVigenciaModal) inputVigenciaModal.value = anioPredeterminado;
     if (textoVigenciaModal) textoVigenciaModal.innerText = anioPredeterminado;
 
-    // 5. Mostrar el Modal
+    // 5. Mostrar el Modal de forma segura
     const modalElement = document.getElementById('modalGeneradorDocs');
     if (modalElement) {
-        const myModal = new bootstrap.Modal(modalElement);
+        // Usar getOrCreateInstance evita que se acumulen capas grises si abres/cierras mucho
+        const myModal = bootstrap.Modal.getOrCreateInstance(modalElement);
         myModal.show();
 
-        // 6. LANZAR LA CARGA DE AÑOS (con el scroll al 2026)
+        // 6. Lanzar la carga de años
         setTimeout(() => {
-            cargarAniosModal(); // Esta es la función que configuramos antes
+            if (typeof cargarAniosModal === "function") cargarAniosModal();
         }, 300);
     }
 }
-function recalcularFila(input) {
-    const fila = input.closest('tr');
-    const cant = parseFloat(fila.querySelector('[name="cant[]"]').value) || 0;
-    const unit = parseFloat(fila.querySelector('[name="v_unit[]"]').value) || 0;
-    
-    fila.querySelector('[name="v_total[]"]').value = (cant * unit);
-    actualizarGranTotal();
-}
-
-function actualizarGranTotal() {
-    let sumaTotal = 0;
-    document.querySelectorAll('[name="v_total[]"]').forEach(input => {
-        sumaTotal += parseFloat(input.value) || 0;
-    });
-
-    const display = document.getElementById('gran_total_display');
-    if (display) {
-        // Formato moneda Colombia
-        display.value = sumaTotal.toLocaleString('es-CO');
-    }
-}
-
 function calcularCronograma() {
     const fElaboracionVal = document.getElementById('f_elaboracion').value;
     if (!fElaboracionVal) return;
@@ -259,27 +266,48 @@ document.addEventListener('DOMContentLoaded', function() {
     // 2. CÁLCULO AUTOMÁTICO DE CRONOGRAMA
 window.calcularCronograma = function() {
     const fElab = document.getElementById('f_elaboracion').value;
+    
+    // 1. Verificación de seguridad: si no hay fecha, no hacemos nada
     if (!fElab) return;
 
-    let fecha = new Date(fElab + 'T00:00:00');
-    
-    const sumarDias = (fechaBase, dias) => {
-        let res = new Date(fechaBase);
+    // 2. Crear la fecha base de forma segura (YYYY-MM-DD)
+    // Usamos split y new Date(y, m, d) para evitar problemas de zona horaria
+    const partes = fElab.split('-');
+    const fechaBase = new Date(partes[0], partes[1] - 1, partes[2]);
+
+    // 3. Función sumarDias mejorada con validación
+    const sumarDias = (fechaReferencia, dias) => {
+        if (isNaN(fechaReferencia.getTime())) return ""; // Si la fecha es inválida, abortar
+        
+        let res = new Date(fechaReferencia);
         res.setDate(res.getDate() + dias);
+        
+        // Verificamos que el resultado sea una fecha válida antes de convertir a ISO
+        if (isNaN(res.getTime())) return "";
+        
         return res.toISOString().split('T')[0];
     };
 
-    // Lógica secuencial
-    document.getElementById('f_publicacion').value = sumarDias(fecha, 1);
-    document.getElementById('f_recepcion').value = sumarDias(fecha, 2);
-    document.getElementById('f_cierre').value = sumarDias(fecha, 3);
-    document.getElementById('f_verificacion').value = sumarDias(fecha, 4);
-    
-    const fechaFirma = sumarDias(fecha, 5);
-    document.getElementById('f_firma').value = fechaFirma;
+    // 4. Lógica secuencial (Capturamos los elementos para evitar errores si no existen)
+    const campos = {
+        'f_publicacion': 1,
+        'f_recepcion': 2,
+        'f_cierre': 3,
+        'f_verificacion': 4,
+        'f_firma': 5
+    };
+
+    for (const [id, dias] of Object.entries(campos)) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.value = sumarDias(fechaBase, dias);
+        }
+    }
 
     // Llamamos a la nueva función para calcular la fecha de satisfacción
-    actualizarFechaSatisfaccion();
+    if (typeof actualizarFechaSatisfaccion === "function") {
+        actualizarFechaSatisfaccion();
+    }
 };
 
 // NUEVA FUNCIÓN: Calcula satisfacción basado en Plazo + Fecha Firma

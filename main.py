@@ -2,7 +2,7 @@ from app import create_app
 from flask_apscheduler import APScheduler
 # Importamos las funciones directamente de tu controlador
 from app.controladores.backups.backups_controlador import realizar_el_backup_final, limpiar_backups_antiguos
-
+from flask_wtf.csrf import CSRFProtect
 # 1. Instanciamos el Scheduler
 scheduler = APScheduler()
 
@@ -35,3 +35,8 @@ if not scheduler.running:
 if __name__ == '__main__':
     # host='0.0.0.0' permite acceso desde otros dispositivos en la misma red
     app.run(debug=True, host='0.0.0.0', port=5000)
+
+# Manejo de tokens 
+app.config['SECRET_KEY'] = '$HamethDumarB3*1025527566$' 
+csrf = CSRFProtect(app)
+

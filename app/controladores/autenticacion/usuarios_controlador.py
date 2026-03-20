@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 from app.modelos.models import Usuario  
 from app import db
 from sqlalchemy import or_
+from flask_wtf.csrf import CSRFProtect
 
 usuarios_bp = Blueprint('usuarios', __name__)
 
@@ -183,6 +184,7 @@ def eliminar_usuario(id):
 @usuarios_bp.route('/usuarios/editar', methods=['POST'])
 @login_required
 def editar_usuario():
+    print(request.form)
     # 1. Seguridad: Solo el admin edita
     if current_user.rol != 'admin':
         flash('No tienes permiso para realizar esta acción.', 'danger')

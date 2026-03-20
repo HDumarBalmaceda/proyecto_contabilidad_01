@@ -1,17 +1,15 @@
 /**
  * ARCHIVO: acciones_proveedores.js
- * UNIFICADO: Solo Mensajes Flash y Ver Detalles
+ * UNIFICADO: Mensajes Flash, Ver Detalles y Crear Proveedor Seguro
  */
 
 document.addEventListener('DOMContentLoaded', function() {
     
     // --- 1. MANEJO DE MENSAJES FLASH (SweetAlert2) ---
-    // Busca si hay datos de mensajes enviados desde Flask
     const flashes = document.querySelectorAll('.flask-flash-data');
-    
     flashes.forEach(flash => {
         const message = flash.dataset.message;
-        const category = flash.dataset.category; // success, danger, warning, info
+        const category = flash.dataset.category;
 
         Swal.fire({
             title: category === 'success' ? 'Registrado' : 'Atención',
@@ -25,38 +23,76 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- 2. LÓGICA PARA VER FICHA COMPLETA (Modal Ver) ---
     const modalVer = document.getElementById('verProveedorModal');
-    
     if (modalVer) {
         modalVer.addEventListener('show.bs.modal', function (event) {
-            // Botón que activó el modal
             const btn = event.relatedTarget;
-            
-            // Función auxiliar para obtener datos o poner guiones si están vacíos
             const get = (attr) => btn.getAttribute(attr) || '---';
 
-            // Mapeo de datos a los elementos del modal de visualización
-            
-            // Sección Identificación
             document.getElementById('view_tipo_tercero').textContent = get('data-tipo_tercero');
             document.getElementById('view_documento_full').textContent = `${get('data-documento')} - ${get('data-dv')}`;
             document.getElementById('view_razon_social').textContent = get('data-razon_social');
-
-            // Sección Nombres y Apellidos
             document.getElementById('view_p_nombre').textContent = get('data-primer_nombre');
             document.getElementById('view_s_nombre').textContent = get('data-segundo_nombre');
             document.getElementById('view_p_apellido').textContent = get('data-primer_apellido');
             document.getElementById('view_s_apellido').textContent = get('data-segundo_apellido');
-
-            // Sección Ubicación y Contacto
             document.getElementById('view_ubicacion_full').textContent = `${get('data-ciudad')} / ${get('data-departamento')}`;
             document.getElementById('view_direccion').textContent = get('data-direccion');
             document.getElementById('view_movil').textContent = get('data-movil');
             document.getElementById('view_correo').textContent = get('data-correo');
             document.getElementById('view_renta').textContent = get('data-renta');
-
-            // Sección Información Bancaria
             document.getElementById('view_banco').textContent = get('data-banco');
             document.getElementById('view_cuenta').textContent = get('data-no_cuenta');
+        });
+    }
+
+    // --- 3. LÓGICA PARA CREAR PROVEEDOR (Envío Seguro con Fetch) ---
+    // Importante: Asegúrate de que tu <form> en el HTML tenga id="formCrearProveedor"
+    const formCrearProveedor = document.getElementById('formCrearProveedor');
+
+    if (formCrearProveedor) {
+        formCrearProveedor.addEventListener('submit', function(e) {
+            e.preventDefault(); // Detenemos la recarga de página
+
+            Swal.fire({
+                title: 'Guardando...',
+                text: 'Registrando la información del proveedor',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            // Capturamos el token del meta-tag que pusimos en el layout
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            const formData = new FormData(this);
+
+            fetch(this.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken // Enviamos el ticket de seguridad
+                },
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) throw new Error("Error en el servidor");
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Éxito!',
+                        text: data.message,
+                        confirmButtonColor: '#0d6efd'
+                    }).then(() => {
+                        location.reload(); // Recarga para ver el nuevo proveedor en la lista
+                    });
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire('Error', 'No se pudo conectar con el servidor', 'error');
+            });
         });
     }
 

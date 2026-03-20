@@ -8,6 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
      <link rel="stylesheet" href="{{ url_for('static', filename='css/colegios/estilos_colegios.css') }}">
+     <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 
 <body class="bg-light">
@@ -55,7 +56,7 @@
             <h2 class="text-primary fw-bold mb-3 mb-md-0">Listado de Colegios</h2>
 
             <div class="d-flex align-items-center gap-2">
-                <form class="d-flex" role="search">
+                <form class="d-flex" role="search" method="GET" action="{{ url_for('colegios.mostrar_colegios') }}">
                     <div class="input-group">
                         <input class="form-control search-input" type="search" placeholder="Buscar colegio..." aria-label="Buscar">
                         <button class="btn btn-primary" type="submit">
@@ -81,9 +82,9 @@
         <ul class="pagination shadow-sm" id="paginacionColegios"></ul>
     </nav>
 </div>
-
+         {% include "colegios/_cambio_contraseña.html" %}
         {% include "colegios/_form_colegio.html" %}
-        {% include "colegios/_cambio_contraseña.html" %}
+        
         {% include "perfil_usuarios/_modal_perfil.html" %}
     </div>
 

@@ -25,6 +25,7 @@
     {% endwith %}
     
     <form id="usuarioForm" action="{{ url_for('usuarios.crear_usuario') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         
         <input type="hidden" id="usuario_id" name="usuario_id">
         

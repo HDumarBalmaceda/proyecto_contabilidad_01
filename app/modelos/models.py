@@ -79,10 +79,12 @@ class Colegio(db.Model):
     rector_nombre = db.Column(db.String(150))
     rector_documento = db.Column(db.String(50))
     # Cambia esta línea en el modelo Colegio:
+    # Cambia el bloque de rector_tipo_documento por este:
     rector_tipo_documento = db.Column(
-    db.Enum('CC', 'CE', 'TI', 'PAS', 'OTRO', name='doc_type', native_enum=False), # <--- Añade native_enum=False
-    nullable=False,
-    default='CC'
+        db.String(10), 
+        nullable=False, 
+        default='CC',
+        server_default='CC'
     )
     logo_path = db.Column(db.String(500))
     firma_path = db.Column(db.String(500))

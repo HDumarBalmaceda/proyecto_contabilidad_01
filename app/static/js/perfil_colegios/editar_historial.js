@@ -125,6 +125,7 @@ validarProveedoresDuplicados();
     }
     
 }
+
 // Función auxiliar para insertar las filas con datos
 function agregarFilaConDatos(item) {
     const tbody = document.getElementById('cuerpoTablaItems');
@@ -149,10 +150,14 @@ function agregarFilaConDatos(item) {
 // EN editar_historial.js
 async function guardarProcesoEnBaseDeDatos(datosParaEnviar, colegioId, esNuevo = false) {
     const url = `/procesos/guardar_proceso/${colegioId}`;
+    
+    // Capturar el CSRF Token para la seguridad de Flask
+    const csrfToken = document.querySelector('input[name="csrf_token"]')?.value 
+                      || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
     Swal.fire({
-        title: 'Procesando...',
-        text: 'Guardando cambios en la base de datos',
+        title: esNuevo ? 'Guardando Proceso...' : 'Actualizando Proceso...',
+        text: 'Sincronizando con la base de datos',
         allowOutsideClick: false,
         didOpen: () => { Swal.showLoading(); }
     });
@@ -160,42 +165,61 @@ async function guardarProcesoEnBaseDeDatos(datosParaEnviar, colegioId, esNuevo =
     try {
         const response = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken 
+            },
             body: JSON.stringify(datosParaEnviar)
         });
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || `Error del servidor: ${response.status}`);
+            const errorTexto = await response.text();
+            let mensajeError = "Error en el servidor";
+            try {
+                const errorJson = JSON.parse(errorTexto);
+                mensajeError = errorJson.message || errorJson.error || mensajeError;
+            } catch (e) {
+                if (errorTexto.includes("CSRF")) mensajeError = "Sesión expirada o error de seguridad. Recarga la página.";
+            }
+            throw new Error(mensajeError);
         }
 
         const result = await response.json();
 
         if (result.success) {
-            // SI ES NUEVO: Después de guardar, abrimos el modal de descarga con el ID real
             if (esNuevo) {
                 Swal.close(); 
-                // Llamamos a la función de descarga del historial usando el ID que nos dio Python
                 if (typeof opcionesDescargaHistorial === 'function') {
                     opcionesDescargaHistorial(result.proceso_id);
                 }
             } else {
-                // SI ES EDICIÓN: Solo avisamos éxito y refrescamos historial
-                Swal.fire('¡Éxito!', 'El proceso se actualizó correctamente.', 'success').then(() => {
-                    const modal = document.getElementById('modalGeneradorDocs') || document.getElementById('modalGeneradorProceso');
-                    if (modal) bootstrap.Modal.getInstance(modal).hide();
-                    
-                    if (typeof abrirHistorial === 'function') abrirHistorial(idColegioActual, paginaActual);
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Hecho!',
+                    text: 'El proceso ha sido actualizado.',
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => {
+                    const modalElement = document.getElementById('modalGeneradorDocs');
+                    if (modalElement) {
+                        const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                        if (modalInstance) modalInstance.hide();
+                    }
+                    if (typeof abrirHistorial === 'function') {
+                        abrirHistorial(colegioId, typeof paginaActual !== 'undefined' ? paginaActual : 1);
+                    }
                 });
             }
         }
     } catch (error) {
-        console.error("Error:", error);
-        Swal.fire('Error', error.message, 'error');
+        Swal.fire({
+            icon: 'error',
+            title: 'No se pudo guardar',
+            text: error.message,
+            confirmButtonText: 'Cerrar'
+        });
     }
 }
-
-// Exponerla globalmente
 window.guardarProcesoEnBaseDeDatos = guardarProcesoEnBaseDeDatos;
 
 /**
