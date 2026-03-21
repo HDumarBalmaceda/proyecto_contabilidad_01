@@ -250,129 +250,126 @@ def descargar_zip(proceso_id):
     archivos_creados = [] 
     
     try:
-        # 1. Validación de seguridad y obtención de datos
+        # 1. Validación y rutas
         contexto, colegio, nombre_col_limpio = obtener_contexto_proceso(proceso_id)
-        
         ruta_plantillas = os.path.join(current_app.root_path, 'static', 'plantillas')
         ruta_temp = os.path.join(current_app.root_path, 'static', 'temp')
         os.makedirs(ruta_temp, exist_ok=True)
+
+        # Limpieza preventiva de archivos viejos (300 segundos = 5 min)
+        for f in os.listdir(ruta_temp):
+            path_f = os.path.join(ruta_temp, f)
+            try:
+                if os.path.getmtime(path_f) < datetime.now().timestamp() - 300:
+                    os.remove(path_f)
+            except: pass
 
         if not os.path.exists(ruta_plantillas):
             return jsonify({"success": False, "message": "No se encontró la carpeta de plantillas"}), 404
             
         archivos_docs = sorted([f for f in os.listdir(ruta_plantillas) if f.endswith('.docx')])
         
+        # 2. Creación del ZIP en memoria
         zip_buffer = BytesIO()
-        
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
             for nombre_p in archivos_docs:
                 doc = DocxTemplate(os.path.join(ruta_plantillas, nombre_p))
                 
-                # --- NUEVA LÓGICA DE IMÁGENES REFACTORIZADA ---
-                # Procesar Logo
-                logo_obj, path_l = obtener_imagen_procesada(doc, colegio.logo_path, 25)
+                # Procesar Imágenes
+                logo_obj, _ = obtener_imagen_procesada(doc, colegio.logo_path, 25)
                 contexto['logo'] = logo_obj if logo_obj else ""
-                if path_l and path_l not in archivos_creados: archivos_creados.append(path_l)
-
-                # Procesar Firma
-                firma_obj, path_f = obtener_imagen_procesada(doc, colegio.firma_path, 35)
+                firma_obj, _ = obtener_imagen_procesada(doc, colegio.firma_path, 35)
                 contexto['firma'] = firma_obj if firma_obj else ""
-                if path_f and path_f not in archivos_creados: archivos_creados.append(path_f)
 
-                # Renderizar con el contexto limpio
                 doc.render(contexto)
                 
-                # Preparar nombres de archivo
                 nombre_plantilla_limpio = os.path.splitext(nombre_p)[0].upper()
                 nombre_base_final = f"{nombre_plantilla_limpio}_{nombre_col_limpio}"
                 path_word = os.path.join(ruta_temp, f"{nombre_base_final}.docx")
                 
-                # Guardar temporal
                 doc.save(path_word)
-                archivos_creados.append(path_word)
                 
-                # --- LÓGICA DE COMPRESIÓN ---
                 if formato == 'pdf':
                     with pdf_lock:
                         if convertir_a_pdf_libreoffice(path_word, ruta_temp):
                             path_pdf = path_word.replace(".docx", ".pdf")
                             zf.write(path_pdf, arcname=f"{nombre_base_final}.pdf")
-                            if path_pdf not in archivos_creados: archivos_creados.append(path_pdf)
                         else:
-                            # Si falla PDF, metemos el Word para no dejar el ZIP vacío
                             zf.write(path_word, arcname=f"{nombre_base_final}.docx")
                 else:
                     zf.write(path_word, arcname=f"{nombre_base_final}.docx")
 
+        # --- CAMBIO CRÍTICO PARA ESTABILIDAD ---
         zip_buffer.seek(0)
-        
-        # Limpieza automática después de enviar
-        @after_this_request
-        def limpiar_basura_temporal(response):
-            for ruta in archivos_creados:
-                try:
-                    if os.path.exists(ruta): os.remove(ruta)
-                except Exception as e:
-                    print(f"No se pudo borrar {ruta}: {e}")
-            return response
+        data = zip_buffer.read()
+        tamanio_zip = len(data)
 
-        return send_file(
-            zip_buffer, 
+        # 3. Envío con headers explícitos
+        response = send_file(
+            BytesIO(data), 
             mimetype='application/zip', 
             as_attachment=True, 
-            download_name=f"PAQUETE_{nombre_col_limpio}.zip"
+            download_name=f"PAQUETE_{nombre_col_limpio}.zip",
+            conditional=False
         )
+        
+        # Forzamos al navegador a saber que el archivo terminó
+        response.headers["Content-Length"] = tamanio_zip
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        
+        return response
 
     except PermissionError as pe:
         return jsonify({"success": False, "message": str(pe)}), 403
     except Exception as e:
         import traceback
         print("--- ERROR DETALLADO ---")
-        print(traceback.format_exc()) # Esto nos dirá la línea exacta del fallo
+        print(traceback.format_exc())
         return jsonify({"success": False, "message": str(e)}), 500
 
 @reportes_bp.route('/descargar_individual/<int:proceso_id>/<string:nombre_p>')
 @login_required
 def descargar_individual(proceso_id, nombre_p):
     formato = request.args.get('formato', 'word').lower()
-    archivos_a_borrar = [] 
     
     try:
-        # 1. Obtención de contexto y validación de seguridad
+        # 1. Obtención de contexto y rutas
         contexto, colegio, nombre_col_limpio = obtener_contexto_proceso(proceso_id)
-        
         ruta_plantillas = os.path.join(current_app.root_path, 'static', 'plantillas')
         ruta_temp = os.path.join(current_app.root_path, 'static', 'temp')
         os.makedirs(ruta_temp, exist_ok=True)
         
+        # Limpieza preventiva (archivos de más de 10 min)
+        for f in os.listdir(ruta_temp):
+            p_f = os.path.join(ruta_temp, f)
+            try:
+                if os.path.getmtime(p_f) < datetime.now().timestamp() - 600:
+                    os.remove(p_f)
+            except: pass
+
         ruta_completa_plantilla = os.path.join(ruta_plantillas, nombre_p)
         if not os.path.exists(ruta_completa_plantilla):
             return jsonify({"success": False, "message": "La plantilla no existe"}), 404
 
         doc = DocxTemplate(ruta_completa_plantilla)
 
-        # --- USO DE LA NUEVA FUNCIÓN DE IMÁGENES ---
-        # Procesar Logo (Ancho sugerido 28mm)
-        logo_obj, path_l = obtener_imagen_procesada(doc, colegio.logo_path, 28)
+        # 2. Procesar Imágenes y Renderizar
+        logo_obj, _ = obtener_imagen_procesada(doc, colegio.logo_path, 28)
         contexto['logo'] = logo_obj if logo_obj else ""
-        if path_l: archivos_a_borrar.append(path_l)
-
-        # Procesar Firma (Ancho sugerido 35mm)
-        firma_obj, path_f = obtener_imagen_procesada(doc, colegio.firma_path, 35)
+        
+        firma_obj, _ = obtener_imagen_procesada(doc, colegio.firma_path, 35)
         contexto['firma'] = firma_obj if firma_obj else ""
-        if path_f: archivos_a_borrar.append(path_f)
 
-        # 2. Renderizado
         doc.render(contexto)
         
         nombre_plantilla_limpio = os.path.splitext(nombre_p)[0].upper()
         nombre_base_final = f"{nombre_plantilla_limpio}_{nombre_col_limpio}"
-        
         path_word = os.path.join(ruta_temp, f"{nombre_base_final}.docx")
         doc.save(path_word)
-        archivos_a_borrar.append(path_word)
         
-        # 3. Lógica de envío y conversión
+        # 3. Determinar qué archivo enviar
         archivo_a_enviar = path_word
         nombre_final_con_ext = f"{nombre_base_final}.docx"
         mimetype_final = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
@@ -384,26 +381,26 @@ def descargar_individual(proceso_id, nombre_p):
                     archivo_a_enviar = path_pdf
                     nombre_final_con_ext = f"{nombre_base_final}.pdf"
                     mimetype_final = 'application/pdf'
-                    archivos_a_borrar.append(path_pdf)
-                # Si falla PDF, por defecto enviará el Word generado arriba
 
-        # 4. Limpieza segura post-respuesta
-        @after_this_request
-        def cleanup(response):
-            for path in archivos_a_borrar:
-                try:
-                    if os.path.exists(path):
-                        os.remove(path)
-                except Exception as e:
-                    print(f"No se pudo limpiar archivo temporal: {e}")
-            return response
+        # --- EL CAMBIO CLAVE: CALCULAR EL TAMAÑO ---
+        tamanio_archivo = os.path.getsize(archivo_a_enviar)
 
-        return send_file(
+        # 4. Envío con Headers de control total
+        response = send_file(
             archivo_a_enviar, 
             as_attachment=True, 
             download_name=nombre_final_con_ext,
-            mimetype=mimetype_final
+            mimetype=mimetype_final,
+            conditional=False  # Desactiva peticiones parciales (Range Requests)
         )
+        
+        # Inyectamos manualmente los headers para que el navegador no se confunda
+        response.headers["Content-Length"] = tamanio_archivo
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        
+        return response
 
     except PermissionError as pe:
         return jsonify({"success": False, "message": str(pe)}), 403
