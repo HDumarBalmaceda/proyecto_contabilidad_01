@@ -1,9 +1,10 @@
-from flask import Flask
+from flask import Flask, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from flask_login import LoginManager  
+from flask_login import LoginManager 
 from config import Config
 from flask_wtf.csrf import CSRFProtect
+from datetime import timedelta
 
 # Inicializamos las extensiones
 db = SQLAlchemy()
@@ -15,17 +16,33 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     
+    # Clave de seguridad (puedes moverla al config.py si prefieres)
     app.secret_key = '$HamethDumarB3*1025527566$'
 
+    # --- CONFIGURACIÓN DE SESIÓN (Nivel de Aplicación) ---
+    app.config.update(
+        # Tiempo de vida de la sesión: 20 minutos
+        PERMANENT_SESSION_LIFETIME=timedelta(minutes=20),
+        # Crucial: Que la sesión se marque como permanente para que expire por tiempo
+        SESSION_PERMANENT=True,
+        # Refresca el tiempo con cada interacción del usuario
+        SESSION_REFRESH_EACH_REQUEST=True,
+        # Seguridad de la cookie
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE='Lax'
+    )
+
+    # Inicialización de extensiones
     db.init_app(app)
     migrate.init_app(app, db)
-    
-    # 3. Configurar Flask-Login y CSRF
     login_manager.init_app(app)
     csrf.init_app(app)
     
+    # Configuración de Flask-Login
     login_manager.login_view = 'auth.login'
-    login_manager.login_message = "Por favor inicia sesión para acceder."
+    login_manager.login_message = "Su sesión ha expirado por inactividad. Por favor inicie sesión de nuevo."
+    login_manager.login_message_category = "info"
+    login_manager.session_protection = "strong"
 
     with app.app_context():
         from app.modelos import models 
@@ -35,6 +52,9 @@ def create_app():
             return models.Usuario.query.get(int(user_id))
 
         # --- REGISTRO DE BLUEPRINTS ---
+        from app.controladores.autenticacion.auth_controlador import auth_bp
+        app.register_blueprint(auth_bp, url_prefix='/auth')
+
         from app.controladores.colegios.form_colegios_controlador import colegios_bp
         app.register_blueprint(colegios_bp)
 
@@ -50,9 +70,6 @@ def create_app():
         from app.controladores.perfil_colegios.reportes_controlador import reportes_bp
         app.register_blueprint(reportes_bp, url_prefix='/reportes')
 
-        from app.controladores.autenticacion.auth_controlador import auth_bp
-        app.register_blueprint(auth_bp, url_prefix='/auth')
-
         from app.controladores.autenticacion.usuarios_controlador import usuarios_bp
         app.register_blueprint(usuarios_bp, url_prefix='/admin')
 
@@ -62,23 +79,13 @@ def create_app():
         from app.controladores.backups.backups_controlador import backups_bp
         app.register_blueprint(backups_bp, url_prefix='/backups')
 
-    # --- RUTA RAÍZ ---
-    @app.route("/")
-    def index():
-        from flask import redirect, url_for
-        from flask_login import current_user
-        if not current_user.is_authenticated:
-            return redirect(url_for('auth.login'))
-        if current_user.rol == 'admin':
-            return redirect(url_for('usuarios.panel_admin'))
-        return redirect(url_for('colegios.mostrar_colegios'))
-
-    # --- CONFIGURACIÓN DE CABECERAS NO-CACHE (DENTRO DE CREATE_APP) ---
+    # --- CONTROL DE CACHÉ PARA SEGURIDAD ---
     @app.after_request
     def add_header(response):
-        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+        # Evita que el navegador guarde copias de las páginas protegidas
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '-1'
         return response
 
-    return app # <--- El return siempre debe ser lo ÚLTIMO
+    return app

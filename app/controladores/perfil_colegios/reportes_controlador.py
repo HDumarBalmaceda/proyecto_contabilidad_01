@@ -131,13 +131,17 @@ def obtener_contexto_proceso(proceso_id):
 
     # --- NOMBRES ---
     def format_p(p):
-        if not p: return "NO ASIGNADO", "S.D."
+        if not p: 
+            return None, None  # <-- ANTES DECÍA "NO ASIGNADO", "S.D."
+        
         if p.razon_social and str(p.razon_social).strip() and not str(p.razon_social).isdigit():
             nombre = p.razon_social
         else:
             partes = [p.primer_nombre, p.segundo_nombre, p.primer_apellido, p.segundo_apellido]
             nombre = " ".join([str(n).strip() for n in partes if n and str(n).strip()])
-        return (nombre or "S.D.").upper(), (p.documento or "S.D.")
+        
+        # Si el nombre queda vacío al final, también devolvemos None
+        return (nombre.upper() if nombre else None), (p.documento or None)
 
     n1, d1 = format_p(prov1)
     n2, d2 = format_p(prov2)
@@ -147,6 +151,10 @@ def obtener_contexto_proceso(proceso_id):
     v2 = float(proceso.valor_propuesta2 or 0)
     v3 = float(proceso.valor_propuesta3 or 0)
     conteo_cotizaciones = 1 + (1 if v2 > 0 else 0) + (1 if v3 > 0 else 0)
+
+    # Ajuste para el diccionario:
+    val_prop2 = f"${v2:,.0f}" if v2 > 0 else ""
+    val_prop3 = f"${v3:,.0f}" if v3 > 0 else ""
 
     nombre_col_limpio = re.sub(r'[^\w]', '_', colegio.nombre).replace("__", "_").upper()
 

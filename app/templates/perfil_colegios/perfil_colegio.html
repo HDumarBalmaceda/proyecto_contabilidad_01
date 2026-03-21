@@ -213,6 +213,16 @@
     {% include 'perfil_colegios/_modal_detalle_proceso.html' %}
     {% include "perfil_usuarios/_modal_perfil.html" %}
 
+     <script src="{{ url_for('static', filename='js/admin_usuarios/sesion_usuarios.js') }}"></script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if current_user.is_authenticated %}
+            // Le pasamos la URL generada por Flask
+            inicializarSeguridadSesion("{{ url_for('auth.logout') }}");
+        {% endif %}
+    });
+</script>
 
 </body>
 </html>
