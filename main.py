@@ -12,27 +12,6 @@ csrf = CSRFProtect()
 # 2. Crear la aplicación usando la factoría
 app = create_app()
 
-# --- CONFIGURACIÓN DE SEGURIDAD Y SESIÓN ---
-app.config.update(
-    SECRET_KEY=os.environ.get('SECRET_KEY', '$HamethDumarB3*1025527566$'),
-    
-    # 1. Activamos la persistencia para que el tiempo de vida (LIFETIME) funcione
-    SESSION_PERMANENT=True, 
-    
-    # 2. Tiempo de inactividad: 20 minutos
-    PERMANENT_SESSION_LIFETIME=timedelta(minutes=20),
-    
-    # 3. Refresca la sesión en cada clic (el cronómetro vuelve a 20 min si hay actividad)
-    SESSION_REFRESH_EACH_REQUEST=True,
-    
-    # 4. Seguridad de cookies
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE='Lax',
-    
-    # 5. Desactivar el "recordarme" persistente
-    REMEMBER_COOKIE_DURATION=timedelta(seconds=0)
-)
-
 # Inicializamos CSRF
 csrf.init_app(app)
 

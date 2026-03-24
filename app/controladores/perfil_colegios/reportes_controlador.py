@@ -13,6 +13,9 @@ import shutil
 from flask import after_this_request
 from flask_login import login_required, current_user
 from app.utils.imagenes import obtener_imagen_procesada
+from app import db
+import traceback
+
 
 pdf_lock = threading.Lock()
 reportes_bp = Blueprint('reportes', __name__)
@@ -78,6 +81,43 @@ def f_str(fecha_obj):
         return ""
     except:
         return ""
+
+@reportes_bp.route('/procesos/get_proximo_numero/<int:colegio_id>')
+def get_proximo_numero(colegio_id):
+    print("\n--- DEBUG: INICIO PETICIÓN PRÓXIMO NÚMERO ---")
+    print(f"DEBUG: Recibido colegio_id = {colegio_id}")
+    
+    try:
+        print("DEBUG: Intentando importar ProcesoContractual...")
+        # Si esto falla, el print de abajo no saldrá
+        from app.modelos.models import ProcesoContractual
+        print("DEBUG: Importación exitosa.")
+
+        print(f"DEBUG: Ejecutando query para colegio_id: {colegio_id}")
+        # Aquí suele estar el problema (nombres de columnas o conexión)
+        conteo = ProcesoContractual.query.filter_by(colegio_id=colegio_id).count()
+        
+        print(f"DEBUG: Conteo obtenido = {conteo}")
+        
+        return jsonify({
+            'status': 'success',
+            'proximo_numero': conteo + 1
+        })
+
+    except Exception as e:
+        print("!!! ERROR CRÍTICO EN EL CONTROLADOR !!!")
+        print(f"Tipo de error: {type(e).__name__}")
+        print(f"Mensaje: {str(e)}")
+        # Esto imprime en la terminal exactamente en qué línea falló:
+        traceback.print_exc() 
+        
+        return jsonify({
+            'status': 'error',
+            'message': str(e),
+            'type': type(e).__name__
+        }), 500
+    finally:
+        print("--- DEBUG: FIN DE PETICIÓN ---\n")
 
 # 2. Reemplaza TODA la función obtener_contexto_proceso con esta versión "Tanque"
 def obtener_contexto_proceso(proceso_id):
@@ -158,7 +198,11 @@ def obtener_contexto_proceso(proceso_id):
 
     nombre_col_limpio = re.sub(r'[^\w]', '_', colegio.nombre).replace("__", "_").upper()
 
+    # Convertimos el entero a string y rellenamos hasta 3 dígitos para el numero del proceso en el documento
+    numero_formateado = str(proceso.numero_proceso_colegio).zfill(3)
+
     contexto = {
+        'numero_proceso': numero_formateado,
         'col_nombre': (colegio.nombre or "").upper(),
         'col_nit': colegio.nit or "",
         'col_rector': colegio.rector_nombre or "",
@@ -173,7 +217,7 @@ def obtener_contexto_proceso(proceso_id):
         'contratista': n1, 'doc_contratista': d1,
         'contratista2': n2, 'doc_contratista2': d2,
         'contratista3': n3, 'doc_contratista3': d3,
-        'cdp_numero': proceso.cdp_numero or "",
+        'cdp_numero': proceso.cdp_numero if (proceso.cdp_numero and proceso.cdp_numero.strip()) else numero_formateado,
         'rubro': proceso.rubro_nombre or "",
         'cod_presupuestal': proceso.cod_presupuestal or "",
         'f_elaboracion': f_str(proceso.f_elaboracion),

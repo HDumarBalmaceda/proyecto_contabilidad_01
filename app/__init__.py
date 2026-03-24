@@ -21,8 +21,8 @@ def create_app():
 
     # --- CONFIGURACIÓN DE SESIÓN (Nivel de Aplicación) ---
     app.config.update(
-        # Tiempo de vida de la sesión: 20 minutos
-        PERMANENT_SESSION_LIFETIME=timedelta(minutes=20),
+        # Tiempo de vida de la sesión: 60 minutos
+        PERMANENT_SESSION_LIFETIME=timedelta(minutes=60),
         # Crucial: Que la sesión se marque como permanente para que expire por tiempo
         SESSION_PERMANENT=True,
         # Refresca el tiempo con cada interacción del usuario
@@ -42,7 +42,7 @@ def create_app():
     login_manager.login_view = 'auth.login'
     login_manager.login_message = "Su sesión ha expirado por inactividad. Por favor inicie sesión de nuevo."
     login_manager.login_message_category = "info"
-    login_manager.session_protection = "strong"
+    login_manager.session_protection = "basic"
 
     with app.app_context():
         from app.modelos import models 

@@ -62,10 +62,10 @@ function cargarAniosModal() {
 
 // --- FUNCIONES GLOBALES (FUERA DE TODO BLOQUE) ---
 
-function abrirGeneradorDocs() {
+async function abrirGeneradorDocs() {
     const anioPredeterminado = 2026; 
 
-    // 1. Limpiamos el ID oculto (FUNDAMENTAL para que no detecte edición)
+    // 1. Limpiamos el ID oculto
     const inputIdOculto = document.getElementById('proceso_id_hidden');
     if (inputIdOculto) inputIdOculto.value = ""; 
 
@@ -80,36 +80,51 @@ function abrirGeneradorDocs() {
     if (textoBtn) textoBtn.innerText = "Generar Expediente";
     if (btnAccion) {
         btnAccion.className = "btn btn-success px-4";
-        // Reforzamos que el botón apunte a procesarExpediente
         btnAccion.onclick = function() { procesarExpediente(); };
     }
 
-    // 3. Resetear el Formulario y Limpieza de rastro manual
+    // 3. Resetear el Formulario y Limpieza de rastro
     const formulario = document.getElementById('formExpedienteCompleto');
     if (formulario) {
-        formulario.reset(); // Limpia inputs estándar
+        formulario.reset(); 
 
-        // --- REFUERZO DE LIMPIEZA ---
-        
-        // A. Vaciar la tabla de ítems y dejarla con una fila inicial limpia
+        // --- NUEVO: LÓGICA DE AUTOCOMPLETADO DE CDP PARA PROCESOS NUEVOS ---
+        const colegioId = obtenerColegioId() || (typeof idColegioActual !== 'undefined' ? idColegioActual : null);
+        const inputCDP = formulario.querySelector('[name="cdp_numero"]');
+
+        if (colegioId && inputCDP) {
+            try {
+                // Llamamos al nuevo endpoint que creaste en el controlador
+                const response = await fetch(`/reportes/procesos/get_proximo_numero/${colegioId}`);
+                const data = await response.json();
+                
+                if (data.proximo_numero) {
+                    // Formateamos a 3 dígitos (ej: 1 -> 001)
+                    inputCDP.value = String(data.proximo_numero).padStart(3, '0');
+                }
+            } catch (error) {
+                console.error("Error al obtener el número sugerido:", error);
+                // Si falla, al menos dejamos el campo limpio o con 001
+            }
+        }
+        // -----------------------------------------------------------------
+
+        // Re-limpieza de tabla de ítems
         const cuerpoTabla = document.getElementById('cuerpoTablaItems');
         if (cuerpoTabla) {
             cuerpoTabla.innerHTML = '';
             if (typeof agregarFilaItem === "function") agregarFilaItem();
         }
 
-        // B. Resetear el display del Gran Total (a veces el reset no lo limpia por ser readonly)
         const displayTotal = document.getElementById('gran_total_display');
         if (displayTotal) displayTotal.value = "0";
 
-        // C. Limpiar la guía de cálculo de fechas (el texto de ayuda del cronograma)
         const guiaPlazo = document.getElementById('guia_plazo');
         if (guiaPlazo) {
             guiaPlazo.innerText = "Escribe el número de días para calcular la fecha final.";
             guiaPlazo.className = "form-text text-muted";
         }
 
-        // D. Habilitar todos los proveedores (por si quedaron bloqueados en una edición previa)
         formulario.querySelectorAll('.select-proveedor').forEach(select => {
             Array.from(select.options).forEach(opt => {
                 opt.disabled = false;
@@ -118,17 +133,16 @@ function abrirGeneradorDocs() {
         });
     }
 
-    // 4. Configurar la VIGENCIA predeterminada
+    // 4. Configurar la VIGENCIA
     const inputVigenciaModal = document.getElementById('modalVigenciaInput');
     const textoVigenciaModal = document.getElementById('anioTextoModal');
     
     if (inputVigenciaModal) inputVigenciaModal.value = anioPredeterminado;
     if (textoVigenciaModal) textoVigenciaModal.innerText = anioPredeterminado;
 
-    // 5. Mostrar el Modal de forma segura
+    // 5. Mostrar el Modal
     const modalElement = document.getElementById('modalGeneradorDocs');
     if (modalElement) {
-        // Usar getOrCreateInstance evita que se acumulen capas grises si abres/cierras mucho
         const myModal = bootstrap.Modal.getOrCreateInstance(modalElement);
         myModal.show();
 
@@ -138,6 +152,7 @@ function abrirGeneradorDocs() {
         }, 300);
     }
 }
+
 function calcularCronograma() {
     const fElaboracionVal = document.getElementById('f_elaboracion').value;
     if (!fElaboracionVal) return;
