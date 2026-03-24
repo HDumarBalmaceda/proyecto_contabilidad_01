@@ -1,9 +1,10 @@
+from flask import Flask, session, redirect, url_for, flash
 from flask import Flask, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager 
 from config import Config
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFProtect, CSRFError
 from datetime import timedelta
 
 # Inicializamos las extensiones
@@ -88,4 +89,10 @@ def create_app():
         response.headers['Expires'] = '-1'
         return response
 
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(e):
+        # Si el token falla, lo mandamos al login con un mensaje
+        flash('La sesión de seguridad expiró, por favor intenta de nuevo.', 'warning')
+        return redirect(url_for('auth.login'))
+    
     return app
