@@ -7,35 +7,24 @@ let ordenActual = 'desc'; // Por defecto los más nuevos
 
 
 
-// --- CAMBIO AQUÍ: Agregamos nombreColegio como parámetro ---
 function abrirHistorial(colegioId, pagina = 1, nombreColegio = '') {
-
-    // Ahora sí, esta condición no romperá el código
+    // 1. Título del modal
     if (nombreColegio) {
         const tituloModal = document.querySelector('#modalHistorial .modal-title');
         if (tituloModal) tituloModal.innerText = `Historial de Procesos: ${nombreColegio}`;
     }
 
-    // 1. Guardamos el contexto actual
+    // 2. Guardamos contexto global
     idColegioActual = colegioId;
     paginaActual = pagina;
 
     const modalElement = document.getElementById('modalHistorial');
     const contenedor = document.getElementById('contenedorHistorial');
 
-    // --- MEJORA: CAPTURAR BÚSQUEDA ---
-    // Si la página es 1, a veces queremos resetear la búsqueda al cambiar de colegio
-    const inputPrevio = document.getElementById('buscarProceso');
-    let query = inputPrevio ? inputPrevio.value : ''; 
-
-    // Inicializamos el modal de Bootstrap
-    let myModal = bootstrap.Modal.getInstance(modalElement);
-    if (!myModal) {
-        myModal = new bootstrap.Modal(modalElement);
-    }
-
-    // 2. Renderizamos la estructura base (Solo en página 1)
-    if (pagina === 1) {
+    // --- EL TRUCO ESTÁ AQUÍ ---
+    // Solo dibujamos el buscador si NO existe ya en el DOM.
+    // Esto evita que al buscar (página 1) se borre el input donde el usuario escribe.
+    if (!document.getElementById('buscarProceso')) {
         contenedor.innerHTML = `
             <div class="px-4 mt-4 mb-4">
                 <div class="row g-2 justify-content-center align-items-center">
@@ -47,8 +36,7 @@ function abrirHistorial(colegioId, pagina = 1, nombreColegio = '') {
                             <input type="text" id="buscarProceso" 
                                    class="form-control border-start-0 ps-2" 
                                    placeholder="Buscar proceso..." 
-                                   oninput="filtrarHistorial()"
-                                   value="${query}">
+                                   oninput="filtrarHistorial()">
                         </div>
                     </div>
                     <div class="col-12 col-md-2">
@@ -65,48 +53,57 @@ function abrirHistorial(colegioId, pagina = 1, nombreColegio = '') {
                 </div>
             </div>
             <div id="paginacionControles" class="pb-4"></div>`;
-        
-        // Solo mostramos el modal si no está ya a la vista
-        if (!modalElement.classList.contains('show')) {
-            myModal.show();
-        }
-
-    } else {
-        // Cambio de página: solo spinner en la lista
-        const lista = document.getElementById('listaProcesosReal');
-        if (lista) {
-            lista.innerHTML = `
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status"></div>
-                    <p class="mt-2 text-muted small">Cargando página ${pagina}...</p>
-                </div>`;
-        }
     }
 
-    // 3. FETCH de datos
+    // 3. Control del Modal de Bootstrap
+    let myModal = bootstrap.Modal.getOrCreateInstance(modalElement);
+    if (!modalElement.classList.contains('show')) {
+        myModal.show();
+    }
+
+    // 4. Mandamos a cargar los datos (esta es la parte que separaremos)
+    cargarDatosHistorial(colegioId, pagina);
+}
+
+function cargarDatosHistorial(colegioId, pagina = 1) {
+    const listaReal = document.getElementById('listaProcesosReal');
+    const inputBusqueda = document.getElementById('buscarProceso');
+    
+    // Capturamos lo que el usuario está escribiendo en ese momento
+    let query = inputBusqueda ? inputBusqueda.value : ''; 
+
+    // 1. Efecto visual de carga: atenuamos la lista si ya existe
+    if (listaReal && listaReal.innerHTML.trim() !== "") {
+        listaReal.style.opacity = "0.5";
+    }
+
+    // 2. FETCH de datos (usando tus rutas de Flask)
     fetch(`/historial/historial_json/${colegioId}?page=${pagina}&q=${encodeURIComponent(query)}&orden=${ordenActual}`)
         .then(response => {
             if (!response.ok) throw new Error('Error en la red');
             return response.json();
         })
         .then(data => {
-            const listaReal = document.getElementById('listaProcesosReal');
             if (!listaReal) return; 
 
+            // Restauramos la opacidad
+            listaReal.style.opacity = "1";
+
+            // 3. Caso: No hay procesos
             if (!data.procesos || data.procesos.length === 0) {
                 listaReal.innerHTML = `
                     <div class="text-center py-5">
                         <i class="bi bi-folder2-open display-4 text-muted opacity-50"></i>
-                        <p class="text-muted mt-3">No se encontraron registros.</p>
+                        <p class="text-muted mt-3">No se encontraron registros para esta búsqueda.</p>
                     </div>`;
                 document.getElementById('paginacionControles').innerHTML = '';
                 return;
             }
 
+            // 4. Actualizamos el caché y dibujamos
             datosHistorialCache = data.procesos;
-
-            // Detectamos si estamos en la interfaz de administrador
-            // Esto asume que tu URL de admin contiene la palabra "admin"
+            
+            // Detectamos si es admin por la URL (como lo tenías antes)
             const esAdmin = window.location.pathname.includes('admin'); 
             
             dibujarListaProcesos(datosHistorialCache, esAdmin); 
@@ -114,21 +111,20 @@ function abrirHistorial(colegioId, pagina = 1, nombreColegio = '') {
         })
         .catch(error => {
             console.error('Error:', error);
-            const listaReal = document.getElementById('listaProcesosReal');
             if (listaReal) {
+                listaReal.style.opacity = "1";
                 listaReal.innerHTML = `<div class="alert alert-danger m-4">Error al conectar con el servidor.</div>`;
             }
         });
 }
 
-// Función para alternar orden y redibujar
 function alternarOrden() {
     // 1. Alternamos el valor de la variable global
     ordenActual = (ordenActual === 'desc') ? 'asc' : 'desc';
 
-    // 2. Llamamos a abrirHistorial en la página 1 para que traiga 
-    // los datos ordenados desde la base de datos
-    abrirHistorial(idColegioActual, 1);
+    // 2. IMPORTANTE: Llamamos a cargarDatosHistorial para que 
+    // traiga los datos ordenados SIN destruir el buscador.
+    cargarDatosHistorial(idColegioActual, 1);
 }
 
 // Añadimos modoAdmin = false como parámetro por defecto
@@ -249,15 +245,18 @@ let timerBusquedaHistorial; // Variable para el debounce
 
 function filtrarHistorial() {
     const input = document.getElementById('buscarProceso');
-    const query = input.value.trim();
+    
+    // Si por alguna razón el input no existe, salimos
+    if (!input) return;
 
-    // Limpiamos el timer anterior
+    // Limpiamos el timer anterior para el debounce
     clearTimeout(timerBusquedaHistorial);
 
-    // Esperamos 400ms antes de disparar la búsqueda al servidor
+    // Esperamos 400ms antes de disparar la búsqueda
     timerBusquedaHistorial = setTimeout(() => {
-        // Llamamos a la función principal siempre a la página 1
-        abrirHistorial(idColegioActual, 1);
+        // LLAMADA CLAVE: Usamos cargarDatosHistorial para actualizar 
+        // solo la lista de expedientes.
+        cargarDatosHistorial(idColegioActual, 1);
     }, 400);
 }
 
