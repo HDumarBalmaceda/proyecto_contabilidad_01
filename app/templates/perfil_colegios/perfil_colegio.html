@@ -11,6 +11,8 @@
 </head>
 <body class="bg-light">
 
+    
+
     <nav class="navbar navbar-expand-lg navbar-dark navbar-perfil mb-4 shadow-sm">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center fw-bold fs-3" href="{{ url_for('colegios.mostrar_colegios') }}">
@@ -132,48 +134,42 @@
                     <i class="bi bi-plus-lg"></i>
                 </button>
             </div>
-            <div class="card-body p-2">
-    <ul class="list-group list-group-flush" id="listaProveedores" style="max-height: 150px; overflow-y: auto;">
+          <div class="card-body p-2">
+    <ul class="list-group list-group-flush" id="listaProveedores" style="max-height: 200px; overflow-y: auto;">
         {% if proveedores_vinculados %}
             {% for prov in proveedores_vinculados %}
-            <li class="list-group-item d-flex justify-content-between align-items-center px-2 bg-transparent py-1 border-bottom">
+            <li class="list-group-item d-flex justify-content-between align-items-center px-2 bg-transparent py-2 border-bottom">
                 <div class="overflow-hidden me-2">
-                    <div class="fw-bold mb-0 text-truncate small" style="max-width: 150px;" title="{{ prov.razon_social or prov.primer_nombre }}">
-                        {# --- LÓGICA DE VISUALIZACIÓN MEJORADA --- #}
-                        {% if prov.razon_social and prov.razon_social.strip() %}
-                            {{ prov.razon_social }}
-                        {% elif prov.primer_nombre and prov.primer_nombre.strip() %}
-                            {{ prov.primer_nombre }} {{ prov.primer_apellido | default('', true) }}
-                        {% else %}
-                            <span class="text-danger italic">Sin Nombre Identificado</span>
-                        {% endif %}
-                    </div>
+                    <div class="fw-bold mb-0 text-truncate small" style="max-width: 150px;">
+    {# Usamos el atributo que creamos en el controlador #}
+    {{ prov.nombre_para_mostrar }}
+</div>
                     <small class="text-muted d-block" style="font-size: 0.7rem;">
-                        NIT: {{ prov.documento }}{% if prov.dv %}-{{ prov.dv }}{% endif %}
+                        NIT: {{ prov.documento }}
                     </small>
                 </div>
+                
                 <div class="d-flex gap-1">
                     <button class="btn btn-light btn-sm text-info p-0 border d-flex align-items-center justify-content-center" 
                             style="width: 24px; height: 24px;"
-                            onclick="verDetalleProveedor('{{ prov.id }}')"
-                            title="Ver detalles"> 
+                            onclick="verDetalleProveedor('{{ prov.id }}')"> 
                         <i class="bi bi-eye" style="font-size: 0.75rem;"></i>
                     </button>
+                    
                     <button type="button" 
-        class="btn btn-light btn-sm text-danger p-0 border d-flex align-items-center justify-content-center btn-desvincular" 
-        style="width: 24px; height: 24px;"
-        data-colegio-id="{{ colegio.id }}"
-        data-proveedor-id="{{ prov.id }}"
-        data-nombre="{{ prov.razon_social or prov.primer_nombre or 'Proveedor' }}"
-        title="Desvincular">
-    <i class="bi bi-trash" style="font-size: 0.75rem;"></i>
-</button>
+                            class="btn btn-light btn-sm text-danger p-0 border d-flex align-items-center justify-content-center btn-desvincular" 
+                            style="width: 24px; height: 24px;"
+                            data-colegio-id="{{ colegio.id }}"
+                            data-proveedor-id="{{ prov.id }}"
+                            data-nombre="{{ prov.primer_nombre if prov.primer_nombre else prov.razon_social }}">
+                        <i class="bi bi-trash" style="font-size: 0.75rem;"></i>
+                    </button>
                 </div>
             </li>
             {% endfor %}
         {% else %}
             <li class="list-group-item text-center py-3 border-0">
-                <p class="text-muted mb-0" style="font-size: 0.75rem;">No hay proveedores vinculados.</p>
+                <p class="text-muted mb-0 small">No hay proveedores vinculados.</p>
             </li>
         {% endif %}
     </ul>
@@ -187,7 +183,12 @@
 </div>
 
 
-    
+    <!--Conexion con modales-->
+    {% include 'perfil_colegios/_modales_perfil.html' %}
+    {% include 'perfil_colegios/modal_generador_documentos.html' %}
+    {% include 'perfil_colegios/_modal_historial.html' %}
+    {% include 'perfil_colegios/_modal_detalle_proceso.html' %}
+    {% include "perfil_usuarios/_modal_perfil.html" %}
 
     <!--Bootstrap-->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -206,12 +207,7 @@
     <!--JS para sacar el rubro y codigo presupuestal-->
     <script src="{{ url_for('static', filename='js/perfil_colegios/presupuesto.js') }}"></script>
     
-    <!--Conexion con modales-->
-    {% include 'perfil_colegios/_modales_perfil.html' %}
-    {% include 'perfil_colegios/modal_generador_documentos.html' %}
-    {% include 'perfil_colegios/_modal_historial.html' %}
-    {% include 'perfil_colegios/_modal_detalle_proceso.html' %}
-    {% include "perfil_usuarios/_modal_perfil.html" %}
+    
 
      <script src="{{ url_for('static', filename='js/admin_usuarios/sesion_usuarios.js') }}"></script>
 
@@ -222,6 +218,28 @@
             inicializarSeguridadSesion("{{ url_for('auth.logout') }}");
         {% endif %}
     });
+</script>
+
+<script>
+    console.log("--- 🕵️ PROCESO DE AUTODIAGNÓSTICO ---");
+    
+    // 1. Verificamos si la lista existe en el DOM
+    const lista = document.getElementById('listaProveedores');
+    if (lista) {
+        console.log("✅ El elemento #listaProveedores existe.");
+        console.log("Contenido interno (HTML):", lista.innerHTML.trim() || "VACÍO");
+    } else {
+        console.error("❌ El elemento #listaProveedores NO existe en el HTML.");
+    }
+
+    // 2. Verificamos si Flask envió algo (Inyectamos Jinja en JS con cuidado)
+    const dataFlask = `{{ proveedores_vinculados | length if proveedores_vinculados is defined else 'UNDEFINED' }}`;
+    console.log("📊 Cantidad de proveedores según Flask:", dataFlask);
+
+    // 3. Verificamos errores de Bootstrap/Modales
+    if (typeof bootstrap === 'undefined') {
+        console.warn("⚠️ Bootstrap no parece estar cargado correctamente.");
+    }
 </script>
 
 </body>

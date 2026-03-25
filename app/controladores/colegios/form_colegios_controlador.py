@@ -129,24 +129,38 @@ def detalle_colegio(id):
     
     # 1. SEGURIDAD: ¿Este colegio le pertenece al usuario o es admin?
     if current_user.rol != 'admin' and colegio.usuario_id != current_user.id:
+        from flask import abort
         abort(403)
 
-    # 2. FILTRAR PROVEEDORES YA VINCULADOS
-    # Aquí está el truco: colegio.proveedores trae TODOS. 
-    # Nosotros creamos una lista nueva que solo tenga los del usuario actual.
+    # 2. LIMPIEZA Y PRIORIDAD DE NOMBRES (La solución al estrés)
+    # Recorremos los proveedores vinculados para decidir qué nombre mostrar
+    for p in colegio.proveedores:
+        p_nom = (p.primer_nombre or "").strip()
+        p_ape = (p.primer_apellido or "").strip()
+        r_soc = (p.razon_social or "").strip()
+
+        # PRIORIDAD 1: Si tiene nombre de persona, usamos ese.
+        if p_nom and p_nom.lower() != 'none':
+            p.nombre_para_mostrar = f"{p_nom} {p_ape}".strip()
+        
+        # PRIORIDAD 2: Si no tiene nombre, usamos la razón social.
+        elif r_soc and r_soc.lower() != 'none':
+            p.nombre_para_mostrar = r_soc
+            
+        # PRIORIDAD 3: Emergencia (solo el NIT)
+        else:
+            p.nombre_para_mostrar = f"NIT: {p.documento}"
+
     proveedores_vinculados = colegio.proveedores
 
-    # 3. FILTRAR PROVEEDORES DISPONIBLES PARA EL SELECT (Los que aún no se vinculan)
-    # Obtenemos los IDs de TODOS los proveedores vinculados para que no aparezcan en el select
+    # 3. FILTRAR PROVEEDORES DISPONIBLES PARA EL SELECT
     ids_vinculados_totales = [p.id for p in colegio.proveedores]
     
     if current_user.rol == 'admin':
         query = Proveedor.query
     else:
-        # El contador solo puede ver sus propios proveedores creados
         query = Proveedor.query.filter_by(usuario_id=current_user.id)
     
-    # Excluimos los que ya están en la tabla intermedia
     if ids_vinculados_totales:
         query = query.filter(Proveedor.id.notin_(ids_vinculados_totales))
     
@@ -155,9 +169,8 @@ def detalle_colegio(id):
     # 4. ENVIAR TODO AL TEMPLATE
     return render_template('perfil_colegios/perfil_colegio.html', 
                            colegio=colegio, 
-                           proveedores_vinculados=proveedores_vinculados, # <--- LISTA FILTRADA
+                           proveedores_vinculados=proveedores_vinculados, 
                            todos_los_proveedores=todos_los_proveedores)
-# 4. RUTA PARA EDITAR
 
 # 1. Definimos las extensiones permitidas fuera de la ruta
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}

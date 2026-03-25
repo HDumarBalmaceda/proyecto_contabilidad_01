@@ -11,7 +11,7 @@ const getCSRFToken = () => {
 
 let timeoutBusqueda;
 
-// --- 1. BUSCADOR ASÍNCRONO ---
+// --- 1. BUSCADOR ASÍNCRONO CON DEBUG ---
 document.addEventListener('input', function(e) {
     if (e.target && e.target.id === 'busquedaProveedor') {
         clearTimeout(timeoutBusqueda);
@@ -22,8 +22,11 @@ document.addEventListener('input', function(e) {
 
         timeoutBusqueda = setTimeout(async () => {
             try {
+                console.log("🔍 Buscando proveedores con texto:", texto);
                 const response = await fetch(`/proveedores/proveedores_json_paginado?q=${texto}`);
                 const data = await response.json();
+
+                console.log("📦 Datos recibidos del servidor:", data.proveedores);
 
                 select.innerHTML = ''; 
 
@@ -33,21 +36,40 @@ document.addEventListener('input', function(e) {
                     opt.textContent = 'No se encontraron resultados...';
                     select.appendChild(opt);
                 } else {
-                    data.proveedores.forEach(p => {
+                    data.proveedores.forEach((p, index) => {
                         const option = document.createElement('option');
                         option.value = p.id;
-                        const nombreMostrar = p.razon_social ? p.razon_social : `${p.primer_nombre} ${p.primer_apellido}`;
+
+                        // --- DEBUG POR CADA PROVEEDOR ---
+                        const pNombre = p.primer_nombre || '';
+                        const pApellido = p.primer_apellido || '';
+                        const nombrePersonal = `${pNombre} ${pApellido}`.trim();
+                        
+                        console.log(`Item [${index}] - ID: ${p.id}`);
+                        console.log(`   > Nombre Personal: "${nombrePersonal}"`);
+                        console.log(`   > Razón Social: "${p.razon_social}"`);
+
+                        let nombreMostrar = "";
+                        if (nombrePersonal && nombrePersonal !== "") {
+                            nombreMostrar = nombrePersonal;
+                        } else if (p.razon_social && p.razon_social.trim() !== "") {
+                            nombreMostrar = p.razon_social;
+                        } else {
+                            nombreMostrar = "Proveedor Sin Nombre Identificado";
+                        }
+
+                        console.log(`   > Resultado final mostrado: "${nombreMostrar}"`);
+
                         option.textContent = `${nombreMostrar} | NIT: ${p.documento}`;
                         select.appendChild(option);
                     });
                 }
             } catch (error) {
-                console.error("Error buscando proveedores:", error);
+                console.error("❌ Error buscando proveedores:", error);
             }
         }, 300);
     }
 });
-
 // --- 2. VINCULAR PROVEEDOR (POST) ---
 document.addEventListener('DOMContentLoaded', function() {
     const formVincular = document.getElementById('formVincular');
