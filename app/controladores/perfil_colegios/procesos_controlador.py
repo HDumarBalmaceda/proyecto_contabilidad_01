@@ -134,18 +134,38 @@ def obtener_proveedores_colegio(colegio_id):
     try:
         colegio = Colegio.query.get_or_404(colegio_id)
         
-        # --- SEGURIDAD AGREGADA AQUÍ ---
+        # --- SEGURIDAD ---
         if current_user.rol != 'admin' and colegio.usuario_id != current_user.id:
             return jsonify({"error": "No tienes permiso para ver estos proveedores"}), 403
             
         data = []
         for p in colegio.proveedores:
-            nombre = p.razon_social if p.razon_social and p.razon_social.strip() else \
-                     " ".join(filter(None, [p.primer_nombre, p.segundo_nombre, p.primer_apellido, p.segundo_apellido])).strip()
-            data.append({"id": p.id, "nombre": nombre or f"Proveedor {p.documento}"})
+            # --- LÓGICA ESPEJO DEL HISTORIAL ---
+            razon = (p.razon_social or "").strip()
+            documento_final = p.documento or "N/A"
+            
+            # Construir nombre de persona natural
+            nombres_persona = [p.primer_nombre, p.segundo_nombre, p.primer_apellido, p.segundo_apellido]
+            nombre_persona_natural = " ".join([part for part in nombres_persona if part]).strip()
+
+            # Decidir el nombre final (evitando ceros y nones)
+            if razon and not razon.isdigit() and razon.lower() != 'none':
+                nombre_final = razon
+            elif nombre_persona_natural and nombre_persona_natural.lower() != 'none':
+                nombre_final = nombre_persona_natural
+            else:
+                nombre_final = f"CONTRATISTA {documento_final}"
+
+            # Enviamos el ID y el nombre ya procesado
+            data.append({
+                "id": p.id, 
+                "nombre": nombre_final.upper() # <--- El JS buscará p.nombre
+            })
             
         return jsonify(data), 200
     except Exception as e:
+        import traceback
+        print(traceback.format_exc()) # Para que veas el error real en tu terminal
         return jsonify({"error": str(e)}), 500
 
 

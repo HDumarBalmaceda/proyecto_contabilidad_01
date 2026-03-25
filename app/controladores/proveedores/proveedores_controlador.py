@@ -14,16 +14,15 @@ proveedores_bp = Blueprint('proveedores', __name__, url_prefix='/proveedores')
 def listar_proveedores():
     colegio_id = session.get('colegio_id')
     
-    # --- LÓGICA DE PROCESAMIENTO (POST) ---
+    # --- 1. LÓGICA DE PROCESAMIENTO (POST) ---
     if request.method == 'POST':
         documento = request.form.get('documento')
-        creado_nuevo = False  # Bandera para saber si se creó o ya existía
+        creado_nuevo = False
         
         try:
             proveedor = Proveedor.query.filter_by(documento=documento).first()
 
             if not proveedor:
-                # 1. Crear el proveedor si no existe
                 proveedor = Proveedor(
                     usuario_id=current_user.id,
                     tipo_tercero=request.form.get('tipo_tercero'),
@@ -48,10 +47,8 @@ def listar_proveedores():
                 mensaje_final = 'Proveedor registrado exitosamente.'
                 creado_nuevo = True
             else:
-                # 2. Si ya existe, preparamos mensaje de error para el SweetAlert
                 mensaje_final = f'El proveedor con documento {documento} ya esta registrado.'
 
-            # 3. Vincular al colegio actual si es necesario
             if colegio_id:
                 colegio = Colegio.query.get(colegio_id)
                 if colegio and proveedor not in colegio.proveedores:
@@ -59,38 +56,51 @@ def listar_proveedores():
             
             db.session.commit()
 
-            # --- RESPUESTA PARA AJAX (FETCH) ---
             if request.headers.get('X-CSRFToken') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({
                     "status": "success" if creado_nuevo else "error",
                     "message": mensaje_final
                 })
 
-            # Si es un envío de formulario tradicional
             flash(mensaje_final, 'success' if creado_nuevo else 'warning')
             return redirect(url_for('proveedores.listar_proveedores'))
 
         except Exception as e:
             db.session.rollback()
-            if request.headers.get('X-CSRFToken') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            if request.headers.get('X-CSRFToken') or request.headers.get('With') == 'XMLHttpRequest':
                 return jsonify({"status": "error", "message": f"Error: {str(e)}"}), 500
-                
             flash(f'Error: {str(e)}', 'danger')
             return redirect(url_for('proveedores.listar_proveedores'))
 
-    # --- LÓGICA DE FILTRADO DE DATOS (GET) ---
+    # --- 2. LÓGICA DE FILTRADO Y PREPARACIÓN DE DATOS (GET) ---
     if current_user.rol == 'admin':
         proveedores = Proveedor.query.all()
-        return render_template('admin_proveedor/admin_proveedor.html', proveedores=proveedores)
-    
+        template = 'admin_proveedor/admin_proveedor.html'
     else:
         if colegio_id:
             colegio = Colegio.query.get(colegio_id)
             proveedores = colegio.proveedores if colegio else []
         else:
             proveedores = Proveedor.query.filter_by(usuario_id=current_user.id).all()
-        
-        return render_template('proveedores/proveedores.html', proveedores=proveedores)
+        template = 'proveedores/proveedores.html'
+
+    # --- 3. APLICAR PRIORIDAD DE NOMBRE (Lo que limpia los "0") ---
+    for p in proveedores:
+        p_nom = (p.primer_nombre or "").strip()
+        p_ape = (p.primer_apellido or "").strip()
+        r_soc = (p.razon_social or "").strip()
+
+        # Si tiene nombre (Persona Natural), esa es la prioridad
+        if p_nom and p_nom.lower() != 'none':
+            p.nombre_para_mostrar = f"{p_nom} {p_ape}".strip()
+        # Si no tiene nombre pero tiene Razón Social (y no es un "0")
+        elif r_soc and r_soc.lower() != 'none' and r_soc != '0':
+            p.nombre_para_mostrar = r_soc
+        # Caso de emergencia: mostrar el documento
+        else:
+            p.nombre_para_mostrar = f"NIT/CC: {p.documento}"
+
+    return render_template(template, proveedores=proveedores)
 
 @proveedores_bp.route('/editar/<int:id>', methods=['POST'])
 @login_required
@@ -164,20 +174,33 @@ def obtener_proveedor_json(id):
     # 1. Buscamos el proveedor
     p = Proveedor.query.get_or_404(id)
     
-    # 2. Validación de seguridad para contadores
+    # 2. Validación de seguridad (Contadores/Admin)
     if current_user.rol != 'admin':
-        # Usamos el nombre real del backref: 'colegios_vinculados'
-        # Verificamos si este proveedor está en algún colegio asignado al usuario actual
         es_mio = p.colegios_vinculados.filter(Colegio.usuario_id == current_user.id).first()
-        
         if not es_mio:
             return {"error": "No autorizado para ver este proveedor"}, 403
 
-    # 3. Retorno de datos (AJUSTADO A TUS MODELOS)
+    # --- 3. LÓGICA DE PRIORIDAD PARA EL NOMBRE (IGUAL AL LISTAR) ---
+    p_nom = (p.primer_nombre or "").strip()
+    p_ape = (p.primer_apellido or "").strip()
+    r_soc = (p.razon_social or "").strip()
+
+    if p_nom and p_nom.lower() != 'none':
+        nombre_bonito = f"{p_nom} {p_ape}".strip()
+    elif r_soc and r_soc.lower() != 'none' and r_soc != '0':
+        nombre_bonito = r_soc
+    else:
+        nombre_bonito = f"NIT/CC: {p.documento}"
+
+    # 4. Retorno de datos ajustado para el Modal
     return {
+        "id": p.id,
+        "nombre_para_mostrar": nombre_bonito, # <--- Usar este en los títulos del modal
         "tipo_tercero": p.tipo_tercero,
+        "documento": p.documento,
+        "dv": p.dv,
         "documento_full": f"{p.documento}-{p.dv}" if p.dv else p.documento,
-        "razon_social": p.razon_social or "N/A",
+        "razon_social": p.razon_social,
         "p_nombre": p.primer_nombre or "-",
         "s_nombre": p.segundo_nombre or "-",
         "p_apellido": p.primer_apellido or "-",

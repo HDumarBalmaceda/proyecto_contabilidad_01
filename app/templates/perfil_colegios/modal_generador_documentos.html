@@ -46,7 +46,7 @@
                 <option value="" disabled selected>Seleccione proveedor...</option>
                 {% if colegio and colegio.proveedores %}
                       {% for p in colegio.proveedores %}
-                    <option value="{{ p.id }}">{{ p.primer_nombre }} {{ p.primer_apellido }} | {{ p.razon_social or 'P. Natural' }}</option>
+                    <option value="{{ p.id }}">{{ p.nombre_para_mostrar }}</option>
                 {% endfor %}
     {% endif %}
             </select>
@@ -61,7 +61,7 @@
                 <option value="">(Ninguno / No aplica)</option>
                 {% if colegio and colegio.proveedores %}
         {% for p in colegio.proveedores %}
-                    <option value="{{ p.id }}">{{ p.primer_nombre }} {{ p.primer_apellido }} | {{ p.razon_social or 'P. Natural' }}</option>
+                    <option value="{{ p.id }}">{{ p.nombre_para_mostrar }}</option>
                 {% endfor %}
     {% endif %}
             </select>
@@ -77,7 +77,7 @@
                 <option value="">(Ninguno / No aplica)</option>
                 {% if colegio and colegio.proveedores %}
         {% for p in colegio.proveedores %}
-                    <option value="{{ p.id }}">{{ p.primer_nombre }} {{ p.primer_apellido }} | {{ p.razon_social or 'P. Natural' }}</option>
+                    <option value="{{ p.id }}">{{ p.nombre_para_mostrar }}</option>
                 {% endfor %}
     {% endif %}
             </select>

@@ -4,7 +4,7 @@ async function editarProceso(id) {
     let bsHistorial = bootstrap.Modal.getInstance(modalHistorialElement);
     if (bsHistorial) bsHistorial.hide();
 
-    // Mostrar un pequeño loading de SweetAlert para que el admin sepa que estamos sincronizando proveedores
+    // Mostrar loading
     Swal.fire({
         title: 'Cargando datos...',
         text: 'Sincronizando proveedores del colegio',
@@ -13,13 +13,13 @@ async function editarProceso(id) {
     });
 
     try {
+        // A) Obtener los datos del proceso primero
         const response = await fetch(`/procesos/obtener_proceso/${id}`);
         if (!response.ok) throw new Error("No se pudo obtener el proceso");
         const p = await response.json();
 
-        // --- NUEVA PIEZA: ACTUALIZAR PROVEEDORES ---
-        // Esperamos a que la función que creaste cargue los <option> correctos
-        // Usamos p.colegio_id que viene desde el servidor en el objeto del proceso
+        // B) SINCRONIZACIÓN OBLIGATORIA DE PROVEEDORES
+        // Usamos await para que NO siga hasta que los <option> estén creados en el DOM
         if (typeof actualizarSelectoresProveedores === "function") {
             await actualizarSelectoresProveedores(p.colegio_id);
         }
@@ -27,37 +27,29 @@ async function editarProceso(id) {
         const modalEditorElement = document.getElementById('modalGeneradorDocs');
         const formulario = document.getElementById('formExpedienteCompleto');
         
-        // --- A) LIMPIEZA Y APARIENCIA DEL BOTÓN ---
+        // C) LIMPIEZA TOTAL PREVIA
         if (formulario) formulario.reset(); 
         const cuerpoTabla = document.getElementById('cuerpoTablaItems');
         if (cuerpoTabla) cuerpoTabla.innerHTML = ''; 
 
+        // Configuración de interfaz del botón y título
         const titulo = document.getElementById('tituloModalExpediente');
         const btnAccion = document.getElementById('btnAccionExpediente');
         const textoBtn = document.getElementById('textoBtnExpediente');
-        const iconoBtn = document.getElementById('iconoBtnExpediente');
 
         if (titulo) titulo.innerText = `Editando Proceso #${p.numero_proceso_colegio || p.id}`;
         if (btnAccion) btnAccion.className = "btn btn-warning px-4 text-dark fw-bold"; 
         if (textoBtn) textoBtn.innerText = "Actualizar Expediente";
-        if (iconoBtn) iconoBtn.className = "bi bi-arrow-clockwise me-2";
 
-        // --- B) SINCRONIZACIÓN DE VIGENCIA ---
-        const vigenciaDB = p.vigencia || 2026;
-        const inputOcultoVigencia = document.getElementById('modalVigenciaInput');
-        const textoBotonAnio = document.getElementById('anioTextoModal');
-
-        if (inputOcultoVigencia) inputOcultoVigencia.value = vigenciaDB;
-        if (textoBotonAnio) textoBotonAnio.innerText = vigenciaDB;
-
-        // --- C) LLENAR FORMULARIO ---
+        // D) LLENADO DE DATOS (Ahora sí es seguro asignar los Selects)
         document.getElementById('proceso_id_hidden').value = p.id;
         
-        // Ahora estos valores sí se marcarán porque actualizarSelectoresProveedores ya creó los <option>
+        // Estos .value ya funcionarán porque actualizarSelectoresProveedores terminó su await
         document.getElementById('prov_principal').value = p.proveedor_id || "";
         document.getElementById('prov_2').value = p.proveedor2_id || "";
         document.getElementById('prov_3').value = p.proveedor3_id || "";
         
+        // Otros campos
         document.querySelector('[name="valor_propuesta2"]').value = p.valor_propuesta2 || 0;
         document.querySelector('[name="valor_propuesta3"]').value = p.valor_propuesta3 || 0;
         document.getElementById('rubro_nombre').value = p.rubro_nombre || "";
@@ -67,20 +59,16 @@ async function editarProceso(id) {
         document.querySelector('[name="objeto_desc"]').value = p.objeto_desc || "";
         document.getElementById('plazo_txt').value = p.plazo_txt || "";
 
+        // Fechas
         ['f_elaboracion', 'f_publicacion', 'f_recepcion', 'f_cierre', 'f_verificacion', 'f_firma', 'f_recibido'].forEach(f => {
             const el = document.getElementById(f);
             if (el) el.value = p[f] ? p[f] : "";
         });
 
-        // Dentro de editarProceso, al final del llenado de datos:
-        document.getElementById('prov_principal').value = p.proveedor_id || "";
-        document.getElementById('prov_2').value = p.proveedor2_id || "";
-        document.getElementById('prov_3').value = p.proveedor3_id || "";
+        // Validar grises (duplicados) después de asignar valores
+        validarProveedoresDuplicados();
 
-// Forzar la validación de grises
-validarProveedoresDuplicados();
-
-        // --- D) TABLA DE ÍTEMS ---
+        // E) TABLA DE ÍTEMS
         if (p.items && p.items.length > 0) {
             p.items.forEach(item => {
                 if (typeof agregarFilaConDatos === "function") agregarFilaConDatos(item); 
@@ -89,43 +77,18 @@ validarProveedoresDuplicados();
             if (typeof agregarFilaItem === "function") agregarFilaItem(); 
         }
 
-        // --- E) MOSTRAR MODAL Y REFORZAR AÑOS ---
+        // F) MOSTRAR MODAL
         let modalEditorFinal = bootstrap.Modal.getOrCreateInstance(modalEditorElement);
-        if (typeof cargarAniosModal === "function") cargarAniosModal();
-        
-        Swal.close(); // Cerramos el loading manual para mostrar el modal
+        Swal.close(); 
         modalEditorFinal.show();
-
-        modalEditorElement.addEventListener('shown.bs.modal', function () {
-            if (typeof cargarAniosModal === "function") cargarAniosModal(); 
-        }, { once: true });
-
-        // --- F) EVENTO AL CERRAR CON LIMPIEZA ANTIGRÍS ---
-        modalEditorElement.addEventListener('hidden.bs.modal', function() {
-            const grid = document.getElementById('gridAniosModal');
-            if (grid) grid.innerHTML = ''; 
-            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-            document.body.classList.remove('modal-open');
-            document.body.style.overflow = '';
-            document.body.style.paddingRight = '';
-
-            if (modalHistorialElement) {
-                setTimeout(() => {
-                    const mHist = bootstrap.Modal.getOrCreateInstance(modalHistorialElement);
-                    mHist.show();
-                }, 400);
-            }
-        }, { once: true });
 
         if (typeof actualizarGranTotal === "function") actualizarGranTotal();
 
     } catch (error) {
-        console.error("Error:", error);
-        Swal.fire('Error', 'No se pudieron cargar los datos o los proveedores.', 'error');
+        console.error("Error detallado:", error);
+        Swal.fire('Error', 'No se pudieron cargar los datos. Verifica la consola.', 'error');
     }
-    
 }
-
 // Función auxiliar para insertar las filas con datos
 function agregarFilaConDatos(item) {
     const tbody = document.getElementById('cuerpoTablaItems');
@@ -222,12 +185,13 @@ async function guardarProcesoEnBaseDeDatos(datosParaEnviar, colegioId, esNuevo =
 }
 window.guardarProcesoEnBaseDeDatos = guardarProcesoEnBaseDeDatos;
 
+
 /**
  * Carga los proveedores de un colegio específico en los selectores del modal
  * @param {number} colegioId - El ID del colegio a consultar
  */
 async function actualizarSelectoresProveedores(colegioId) {
-    if (!colegioId) return;
+    if (!colegioId) return false;
 
     try {
         const response = await fetch(`/procesos/colegios/obtener_proveedores/${colegioId}`);
@@ -236,10 +200,10 @@ async function actualizarSelectoresProveedores(colegioId) {
         const proveedores = await response.json();
         const IDs_SELECTS = ['prov_principal', 'prov_2', 'prov_3'];
 
-        // 1. Llenamos los selectores por primera vez
-        IDs_SELECTS.forEach(idSelect => {
+        // Usamos una promesa para asegurar que todo se llene antes de seguir
+        for (const idSelect of IDs_SELECTS) {
             const select = document.getElementById(idSelect);
-            if (!select) return;
+            if (!select) continue;
 
             const valorPrevio = select.value;
             select.innerHTML = '<option value="">Seleccione un proveedor...</option>';
@@ -247,26 +211,36 @@ async function actualizarSelectoresProveedores(colegioId) {
             proveedores.forEach(p => {
                 const opt = document.createElement('option');
                 opt.value = p.id;
-                opt.textContent = p.nombre; 
+
+                // Lógica de nombre que NO falle si faltan campos
+                let nombreLimpio = p.nombre_para_mostrar || p.nombre;
+                
+                if (!nombreLimpio || nombreLimpio === "0" || nombreLimpio === "0000000000") {
+                    if (p.primer_nombre && p.primer_nombre !== "0") {
+                        nombreLimpio = `${p.primer_nombre} ${p.primer_apellido || ''}`.trim();
+                    } else {
+                        nombreLimpio = p.razon_social !== "0" ? p.razon_social : `NIT: ${p.documento}`;
+                    }
+                }
+
+                opt.textContent = nombreLimpio;
                 select.appendChild(opt);
             });
 
             if (valorPrevio) select.value = valorPrevio;
-
-            // 2. Agregamos el evento para que cuando cambie, valide a los demás
+            
+            // Refrescar eventos
+            select.removeEventListener('change', validarProveedoresDuplicados);
             select.addEventListener('change', validarProveedoresDuplicados);
-        });
+        }
 
-        // Ejecutar la validación inicial por si ya vienen cargados desde la DB
         validarProveedoresDuplicados();
-
-        return true;
+        return true; // ÉXITO TOTAL
     } catch (error) {
-        console.error("❌ Error cargando proveedores:", error);
+        console.error("❌ Error:", error);
         return false;
     }
 }
-
 /**
  * Función que deshabilita las opciones ya seleccionadas en los otros selectores
  */
