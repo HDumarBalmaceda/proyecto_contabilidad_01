@@ -11,8 +11,6 @@
 </head>
 <body class="bg-light">
 
-    
-
     <nav class="navbar navbar-expand-lg navbar-dark navbar-perfil mb-4 shadow-sm">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center fw-bold fs-3" href="{{ url_for('colegios.mostrar_colegios') }}">
@@ -218,28 +216,6 @@
             inicializarSeguridadSesion("{{ url_for('auth.logout') }}");
         {% endif %}
     });
-</script>
-
-<script>
-    console.log("--- 🕵️ PROCESO DE AUTODIAGNÓSTICO ---");
-    
-    // 1. Verificamos si la lista existe en el DOM
-    const lista = document.getElementById('listaProveedores');
-    if (lista) {
-        console.log("✅ El elemento #listaProveedores existe.");
-        console.log("Contenido interno (HTML):", lista.innerHTML.trim() || "VACÍO");
-    } else {
-        console.error("❌ El elemento #listaProveedores NO existe en el HTML.");
-    }
-
-    // 2. Verificamos si Flask envió algo (Inyectamos Jinja en JS con cuidado)
-    const dataFlask = `{{ proveedores_vinculados | length if proveedores_vinculados is defined else 'UNDEFINED' }}`;
-    console.log("📊 Cantidad de proveedores según Flask:", dataFlask);
-
-    // 3. Verificamos errores de Bootstrap/Modales
-    if (typeof bootstrap === 'undefined') {
-        console.warn("⚠️ Bootstrap no parece estar cargado correctamente.");
-    }
 </script>
 
 </body>

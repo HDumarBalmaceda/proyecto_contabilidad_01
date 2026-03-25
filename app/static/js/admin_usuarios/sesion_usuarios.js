@@ -1,5 +1,4 @@
 function inicializarSeguridadSesion(logoutUrl) {
-    console.log("Cronómetro de inactividad iniciado (20 minutos)");
 
     // Definimos los tiempos en milisegundos
     const tiempoTotal = 20 * 60 * 1000; // 20 minutos

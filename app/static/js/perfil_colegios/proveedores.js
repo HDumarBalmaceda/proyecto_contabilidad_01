@@ -22,11 +22,8 @@ document.addEventListener('input', function(e) {
 
         timeoutBusqueda = setTimeout(async () => {
             try {
-                console.log("🔍 Buscando proveedores con texto:", texto);
                 const response = await fetch(`/proveedores/proveedores_json_paginado?q=${texto}`);
                 const data = await response.json();
-
-                console.log("📦 Datos recibidos del servidor:", data.proveedores);
 
                 select.innerHTML = ''; 
 
@@ -44,10 +41,6 @@ document.addEventListener('input', function(e) {
                         const pNombre = p.primer_nombre || '';
                         const pApellido = p.primer_apellido || '';
                         const nombrePersonal = `${pNombre} ${pApellido}`.trim();
-                        
-                        console.log(`Item [${index}] - ID: ${p.id}`);
-                        console.log(`   > Nombre Personal: "${nombrePersonal}"`);
-                        console.log(`   > Razón Social: "${p.razon_social}"`);
 
                         let nombreMostrar = "";
                         if (nombrePersonal && nombrePersonal !== "") {
@@ -57,8 +50,6 @@ document.addEventListener('input', function(e) {
                         } else {
                             nombreMostrar = "Proveedor Sin Nombre Identificado";
                         }
-
-                        console.log(`   > Resultado final mostrado: "${nombreMostrar}"`);
 
                         option.textContent = `${nombreMostrar} | NIT: ${p.documento}`;
                         select.appendChild(option);

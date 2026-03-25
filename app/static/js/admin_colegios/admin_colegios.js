@@ -158,9 +158,6 @@ if (modal) {
         const btnGuardar = document.getElementById('btn-guardar-nuevo');
         const btnActualizar = document.getElementById('btn-actualizar-edit');
 
-        console.log("--- 🕵️ DEBUG MODAL ABIERTO ---");
-        console.log("¿Existe ID?:", id ? `SÍ (ID: ${id})` : "NO (Modo Registro)");
-
         if (id) {
             // --- MODO EDICIÓN ---
             if (modalTitle) modalTitle.textContent = "Editar Colegio";
@@ -175,7 +172,6 @@ if (modal) {
                 const val = btn.getAttribute(`data-${f}`);
                 if (el) {
                     el.value = (val && val !== 'None') ? val : '';
-                    console.log(`✅ Campo [${f}] llenado con:`, el.value);
                 }
             });
 
@@ -184,7 +180,6 @@ if (modal) {
             const firma = btn.getAttribute('data-firma'); // Verifica que tu botón tenga data-firma
             
             if (logo && logo !== 'None') {
-                console.log("🖼️ Logo actual encontrado:", logo);
                 const pLogo = document.getElementById('previewLogo');
                 pLogo.src = `/static/uploads/${logo}`;
                 pLogo.classList.remove('d-none');
@@ -192,7 +187,6 @@ if (modal) {
             }
             
             if (firma && firma !== 'None') {
-                console.log("✍️ Firma actual encontrada:", firma);
                 const pFirma = document.getElementById('previewFirma');
                 pFirma.src = `/static/uploads/${firma}`;
                 pFirma.classList.remove('d-none');
@@ -201,7 +195,6 @@ if (modal) {
 
         } else {
             // --- MODO NUEVO ---
-            console.log("✨ Limpiando formulario para nuevo colegio...");
             if (modalTitle) modalTitle.textContent = "Registrar Nuevo Colegio";
             
             form.reset();
@@ -235,14 +228,12 @@ if (modal) {
 const formColegio = document.getElementById('formCrearColegio') || document.getElementById('formColegio');
 if (formColegio) {
     formColegio.addEventListener('submit', function(e) {
-        console.log("--- 📤 ENVIANDO FORMULARIO AL SERVIDOR ---");
         const formData = new FormData(this);
         
         for (let [key, value] of formData.entries()) {
             if (value instanceof File) {
-                console.log(`📁 ARCHIVO [${key}]: ${value.name} (${value.size} bytes)`);
             } else {
-                console.log(`🆔 CAMPO [${key}]:`, value);
+            
             }
         }
         
