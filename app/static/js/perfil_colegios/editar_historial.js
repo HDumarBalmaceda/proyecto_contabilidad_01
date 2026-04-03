@@ -58,6 +58,11 @@ async function editarProceso(id) {
         document.getElementById('cod_presupuestal').value = p.cod_presupuestal || "";
         document.querySelector('[name="objeto_desc"]').value = p.objeto_desc || "";
         document.getElementById('plazo_txt').value = p.plazo_txt || "";
+        
+        const inputSecop = document.getElementById('link_secop');
+        if (inputSecop) {
+            inputSecop.value = p.link_secop || ""; 
+        }
 
         // Fechas
         ['f_elaboracion', 'f_publicacion', 'f_recepcion', 'f_cierre', 'f_verificacion', 'f_firma', 'f_recibido'].forEach(f => {

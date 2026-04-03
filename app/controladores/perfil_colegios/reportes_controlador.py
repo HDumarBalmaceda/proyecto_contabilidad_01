@@ -255,7 +255,7 @@ def obtener_contexto_proceso(proceso_id):
 @reportes_bp.route('/obtener_lista_plantillas')
 @login_required
 def lista_plantillas():
-    ruta = os.path.join(current_app.root_path, 'static', 'plantillas')
+    ruta = os.path.join(current_app.root_path, 'static', 'plantillas', )
     
     # MEJORA: Verificar si la ruta existe para evitar que la app explote
     if not os.path.exists(ruta):

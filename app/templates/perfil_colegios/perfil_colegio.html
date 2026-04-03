@@ -182,11 +182,13 @@
 
 
     <!--Conexion con modales-->
+    {% include "perfil_colegios/_modal_informe_excel.html" %}
     {% include 'perfil_colegios/_modales_perfil.html' %}
     {% include 'perfil_colegios/modal_generador_documentos.html' %}
     {% include 'perfil_colegios/_modal_historial.html' %}
     {% include 'perfil_colegios/_modal_detalle_proceso.html' %}
     {% include "perfil_usuarios/_modal_perfil.html" %}
+   
 
     <!--Bootstrap-->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -204,6 +206,8 @@
     <script src="{{ url_for('static', filename='js/perfil_colegios/historial_procesos.js') }}"></script>
     <!--JS para sacar el rubro y codigo presupuestal-->
     <script src="{{ url_for('static', filename='js/perfil_colegios/presupuesto.js') }}"></script>
+    <!--JS  para el informe de execel-->
+    <script src="{{ url_for('static', filename='js/perfil_colegios/informes_excel.js') }}"></script>
     
     
 

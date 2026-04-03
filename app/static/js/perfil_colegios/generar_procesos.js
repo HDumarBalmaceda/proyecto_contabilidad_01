@@ -87,6 +87,8 @@ async function abrirGeneradorDocs() {
     const formulario = document.getElementById('formExpedienteCompleto');
     if (formulario) {
         formulario.reset(); 
+        const inputLink = formulario.querySelector('[name="link_secop"]');
+            if (inputLink) inputLink.value = "";
 
         // --- NUEVO: LÓGICA DE AUTOCOMPLETADO DE CDP PARA PROCESOS NUEVOS ---
         const colegioId = obtenerColegioId() || (typeof idColegioActual !== 'undefined' ? idColegioActual : null);
@@ -201,6 +203,12 @@ async function procesarExpediente() {
         } else {
             datosParaEnviar[key] = value;
         }
+    }
+
+    // --- AGREGAMOS VALIDACIÓN DEL LINK SECOP (Opcional pero recomendada) ---
+    if (datosParaEnviar.link_secop && !datosParaEnviar.link_secop.startsWith('http')) {
+        Swal.fire('Atención', 'El link del SECOP debe empezar con http:// o https://', 'warning');
+        return;
     }
 
     // --- CORRECCIONES ESTRUCTURALES ---

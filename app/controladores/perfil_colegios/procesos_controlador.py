@@ -65,6 +65,7 @@ def guardar_proceso(colegio_id):
         proceso.cdp_numero = data.get('cdp_numero')
         proceso.rubro_nombre = data.get('rubro_nombre')
         proceso.cod_presupuestal = data.get('cod_presupuestal')
+        proceso.link_secop = data.get('link_secop')
         proceso.gran_total = total_p1
         proceso.valor_propuesta2 = v2
         proceso.valor_propuesta3 = v3
@@ -118,6 +119,7 @@ def obtener_proceso(id):
         'gran_total': p.gran_total, 'promedio_propuestas': p.promedio_propuestas,
         'tipo_contrato': p.tipo_contrato, 'objeto_desc': p.objeto_desc, 'plazo_txt': p.plazo_txt,
         'cdp_numero': p.cdp_numero, 'rubro_nombre': p.rubro_nombre, 'cod_presupuestal': p.cod_presupuestal,
+        'link_secop': p.link_secop or '',
         'f_elaboracion': p.f_elaboracion.isoformat() if p.f_elaboracion else '',
         'f_publicacion': p.f_publicacion.isoformat() if p.f_publicacion else '',
         'f_recepcion': p.f_recepcion.isoformat() if p.f_recepcion else '',

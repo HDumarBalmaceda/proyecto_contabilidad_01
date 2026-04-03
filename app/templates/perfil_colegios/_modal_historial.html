@@ -7,7 +7,8 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body bg-light p-0"> <div id="contenedorHistorial">
+            <div class="modal-body bg-light p-0"> 
+                <div id="contenedorHistorial">
                     <div class="text-center py-5">
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Cargando...</span>
@@ -16,7 +17,11 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer border-0 bg-white shadow-sm">
+            <div class="modal-footer border-0 bg-white shadow-sm d-flex justify-content-between">
+                <button type="button" class="btn btn-success btn-sm fw-bold d-flex align-items-center gap-2 shadow-sm" onclick="abrirModalFiltrosExcel()">
+                    <i class="bi bi-file-earmark-excel-fill"></i> EXPORTAR INFORME
+                </button>
+                
                 <button type="button" class="btn btn-light btn-sm fw-bold text-muted" data-bs-dismiss="modal">CERRAR</button>
             </div>
         </div>

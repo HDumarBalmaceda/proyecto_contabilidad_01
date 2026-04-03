@@ -224,7 +224,7 @@ if (modal) {
     });
 }
 
-// --- 🚀 INTERCEPTOR CRÍTICO: ¿Qué se está enviando realmente? ---
+// ---  INTERCEPTOR CRÍTICO: ¿Qué se está enviando realmente? ---
 const formColegio = document.getElementById('formCrearColegio') || document.getElementById('formColegio');
 if (formColegio) {
     formColegio.addEventListener('submit', function(e) {

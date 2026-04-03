@@ -129,6 +129,7 @@ class ProcesoContractual(db.Model):
     plazo_txt = db.Column(db.String(200))
     rubro_nombre = db.Column(db.String(200))
     numero_proceso_colegio = db.Column(db.Integer)
+    link_secop = db.Column(db.String(500), nullable=True) # 500 caracteres porque esos links son largos
     
     f_elaboracion = db.Column(db.Date)
     f_publicacion = db.Column(db.Date)
