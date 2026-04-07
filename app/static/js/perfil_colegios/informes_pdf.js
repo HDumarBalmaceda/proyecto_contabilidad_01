@@ -134,7 +134,6 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('tipoContratoPDF').selectedIndex = 0;
             document.getElementById('rubroPDF').selectedIndex = 0;
             
-            console.log("Formulario de PDF reseteado correctamente.");
         });
     }
 });

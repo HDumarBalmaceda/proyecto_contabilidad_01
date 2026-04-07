@@ -228,45 +228,70 @@ async function procesarExpediente() {
     const formulario = document.getElementById('formExpedienteCompleto');
     if (!formulario) return;
 
-    // 1. Obtener Colegio ID
-    // MEJORA: Si obtenerColegioId() falla, usamos la global idColegioActual
-    const colegioId = obtenerColegioId() || idColegioActual;
-
-    if (!colegioId || colegioId === "null") {
-        Swal.fire('Error', 'No se pudo determinar el ID del colegio.', 'error');
+    // --- PASO 1: VALIDACIÓN INTELIGENTE (EVITA ERROR DE ENFOQUE) ---
+    if (!formulario.checkValidity()) {
+        // Buscamos el primer campo que tenga error
+        const primerError = formulario.querySelector(':invalid');
+        
+        if (primerError) {
+            // Buscamos si ese campo está dentro de una pestaña (tab-pane)
+            const tabPane = primerError.closest('.tab-pane');
+            if (tabPane) {
+                const idTab = tabPane.getAttribute('id');
+                // Buscamos el botón/link que activa esa pestaña
+                const disparadorTab = document.querySelector(`[href="#${idTab}"], [data-bs-target="#${idTab}"]`);
+                if (disparadorTab) {
+                    bootstrap.Tab.getOrCreateInstance(disparadorTab).show();
+                }
+            }
+            // Ahora que la pestaña es visible, el navegador sí puede enfocar el error
+            setTimeout(() => {
+                formulario.reportValidity();
+            }, 100); // Pequeña pausa para que la pestaña termine de abrirse
+        }
         return;
     }
 
-    // 2. Recolectar datos con LIMPIEZA DE NULOS
+    // --- PASO 2: VALIDACIÓN MANUAL EXTRA (POR SI ACASO) ---
+    const fechaElaboracion = document.getElementById('f_elaboracion').value;
+    const plazo = document.getElementById('plazo_txt').value;
+    const fechaFirma = document.getElementById('f_firma').value;
+
+    if (!fechaElaboracion || !plazo || !fechaFirma) {
+        const tabCronograma = document.querySelector('[href="#tab-cronograma"], [data-bs-target="#tab-cronograma"]');
+        bootstrap.Tab.getOrCreateInstance(tabCronograma).show();
+        Swal.fire('Atención', 'Por favor completa las fechas y el plazo en la pestaña de Cronograma.', 'warning');
+        return;
+    }
+
+    // --- PASO 3: RECOLECCIÓN DE DATOS ---
+    const colegioId = (typeof obtenerColegioId === 'function' ? obtenerColegioId() : null) || (typeof idColegioActual !== 'undefined' ? idColegioActual : null);
+    
+    if (!colegioId) {
+        Swal.fire('Error', 'No se encontró el ID del colegio.', 'error');
+        return;
+    }
+
     const formData = new FormData(formulario);
     const datosParaEnviar = {};
 
     for (let [key, value] of formData.entries()) {
-        if (value === "" || value === undefined) {
-            datosParaEnviar[key] = null;
-        } else {
-            datosParaEnviar[key] = value;
+        // Ignoramos los campos que terminan en [] porque los manejamos manualmente (items)
+        if (!key.includes('[]')) {
+            datosParaEnviar[key] = (value === "" || value === undefined) ? null : value;
         }
     }
 
-    // --- AGREGAMOS VALIDACIÓN DEL LINK SECOP (Opcional pero recomendada) ---
-    if (datosParaEnviar.link_secop && !datosParaEnviar.link_secop.startsWith('http')) {
-        Swal.fire('Atención', 'El link del SECOP debe empezar con http:// o https://', 'warning');
-        return;
-    }
-
-    // --- CORRECCIONES ESTRUCTURALES ---
-    const inputVigencia = document.getElementById('modalVigenciaInput');
-    datosParaEnviar.vigencia = inputVigencia ? parseInt(inputVigencia.value) : 2026;
-
-    if (datosParaEnviar.prov_principal) {
-        datosParaEnviar.proveedor_id = datosParaEnviar.prov_principal;
-    }
-
+    // Ajustes de tipos de datos
+    datosParaEnviar.vigencia = parseInt(document.getElementById('modalVigenciaInput')?.value || "2026");
+    datosParaEnviar.proveedor_id = datosParaEnviar.proveedor_id ? parseInt(datosParaEnviar.proveedor_id) : null;
+    datosParaEnviar.proveedor2_id = datosParaEnviar.proveedor2_id ? parseInt(datosParaEnviar.proveedor2_id) : null;
+    datosParaEnviar.proveedor3_id = datosParaEnviar.proveedor3_id ? parseInt(datosParaEnviar.proveedor3_id) : null;
+    
     const idEdicion = document.getElementById('proceso_id_hidden')?.value;
     datosParaEnviar.proceso_id = (idEdicion && idEdicion !== "") ? parseInt(idEdicion) : null;
 
-    // 3. Recolectar la tabla de Ítems
+    // --- PASO 4: RECOLECCIÓN DE ÍTEMS ---
     const items = [];
     document.querySelectorAll('#cuerpoTablaItems tr').forEach(fila => {
         const descInput = fila.querySelector('[name="desc[]"]');
@@ -280,28 +305,25 @@ async function procesarExpediente() {
             });
         }
     });
-
     datosParaEnviar.items = items;
 
-    // 4. Validaciones mínimas
-    if (!datosParaEnviar.proveedor_id) {
-        Swal.fire('Atención', 'Debes seleccionar el proveedor principal', 'warning');
-        return;
-    }
-
     if (items.length === 0) {
-        Swal.fire('Atención', 'Debe agregar al menos un ítem con descripción', 'warning');
+        const tabItems = document.querySelector('[href="#tab-items"], [data-bs-target="#tab-items"]');
+        bootstrap.Tab.getOrCreateInstance(tabItems).show();
+        Swal.fire('Atención', 'Debe agregar al menos un ítem con descripción en la tabla', 'warning');
         return;
     }
 
-    // 5. ENVÍO UNIFICADO (Aquí está la magia)
-
-    // Determinamos si es nuevo o edición
+    // --- PASO 5: ENVÍO FINAL ---
     const esNuevo = !datosParaEnviar.proceso_id;
-
-    // LLAMAMOS A LA FUNCIÓN DE editar_historial.js
-    // Esta se encarga del fetch y de abrir la descarga si es nuevo
-    guardarProcesoEnBaseDeDatos(datosParaEnviar, colegioId, esNuevo);
+    
+    
+    // Llamada a tu función de guardado
+    if (typeof guardarProcesoEnBaseDeDatos === 'function') {
+        guardarProcesoEnBaseDeDatos(datosParaEnviar, colegioId, esNuevo);
+    } else {
+        console.error("La función guardarProcesoEnBaseDeDatos no está definida.");
+    }
 }
 /**
  * LÓGICA PARA EL GENERADOR DE EXPEDIENTES CONTRACTUALES

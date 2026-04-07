@@ -22,6 +22,10 @@
                     <li class="nav-item">
                         <a class="nav-link small fw-bold" data-bs-toggle="tab" href="#tab-items">3. ÍTEMS/TABLA</a>
                     </li>
+                    <li class="nav-item">
+                          <a class="nav-link small fw-bold text-danger" data-bs-toggle="tab" href="#tab-consultas">
+                           <i class="bi bi-shield-check me-1"></i> 4. ANTECEDENTES </a>
+                   </li>
                 </ul>
 
                 <form id="formExpedienteCompleto" class="p-4">
@@ -57,7 +61,7 @@
 
         <div class="col-md-4">
             <label class="small fw-bold text-muted">2. Proveedor Adicional</label>
-            <select class="form-select form-select-sm select-proveedor mb-2" name="proveedor2_id" id="prov_2">
+            <select class="form-select form-select-sm select-proveedor mb-2" name="proveedor2_id" id="prov_2" required>
                 <option value="">(Ninguno / No aplica)</option>
                 {% if colegio and colegio.proveedores %}
         {% for p in colegio.proveedores %}
@@ -67,7 +71,7 @@
             </select>
             <div class="input-group input-group-sm">
                 <span class="input-group-text">$</span>
-                <input type="number" name="valor_propuesta2" class="form-control" placeholder="Valor propuesta 2">
+                <input type="number" name="valor_propuesta2" class="form-control" placeholder="Valor propuesta 2" required>
             </div>
         </div>
 
@@ -96,7 +100,7 @@
 
         <div class="col-md-4 ">
     <label class="form-label fw-bold small">Nombre del Rubro Presupuestal</label>
-    <select class="form-select form-select-sm" id="rubro_nombre" name="rubro_nombre">
+    <select class="form-select form-select-sm" id="rubro_nombre" name="rubro_nombre" required>
         <option value="">-- Seleccione un rubro --</option>
         </select>
 </div>
@@ -161,7 +165,7 @@
         <div class="col-md-6">
             <div class="h-100">
                 <label class="form-label fw-bold small">Objeto del Contrato</label>
-                <textarea class="form-control form-control-sm" name="objeto_desc" rows="4" placeholder="Descripción del contrato..." maxlength="500"></textarea>
+                <textarea class="form-control form-control-sm" name="objeto_desc" rows="4" placeholder="Descripción del contrato..." maxlength="500" required></textarea>
             </div>
         </div>
 
@@ -276,6 +280,56 @@
                                                              </div>
                                                        </div>
                                                   </div>
+
+                                                  <div class="tab-pane fade" id="tab-consultas">
+    <div class="p-4">
+        <div class="alert alert-primary d-flex align-items-center mb-4">
+            <i class="bi bi-info-circle-fill me-3 fs-4"></i>
+            <div>
+                <strong>Verificación de Proveedores:</strong> Use estos accesos rápidos para validar antecedentes antes de contratar.
+            </div>
+        </div>
+        
+        <div class="row g-3">
+            <div class="col-md-6">
+                <a href="https://www.procuraduria.gov.co/Pages/Generacion-de-antecedentes.aspx" target="_blank" class="btn btn-outline-dark w-100 py-3 d-flex align-items-center shadow-sm">
+                    <i class="bi bi-person-badge fs-3 me-3 text-primary"></i>
+                    <div class="text-start">
+                        <div class="fw-bold small">PROCURADURÍA</div>
+                        <small class="text-muted" style="font-size: 0.7rem;">Antecedentes Disciplinarios</small>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-6">
+                <a href="https://cfiscal.contraloria.gov.co/certificados/certificadopersonanatural.aspx" target="_blank" class="btn btn-outline-dark w-100 py-3 d-flex align-items-center shadow-sm">
+                    <i class="bi bi-building-check fs-3 me-3 text-success"></i>
+                    <div class="text-start">
+                        <div class="fw-bold small">CONTRALORÍA</div>
+                        <small class="text-muted" style="font-size: 0.7rem;">Responsabilidad Fiscal (SIRI)</small>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-6">
+                <a href="https://antecedentes.policia.gov.co:7005/WebJudicial/antecedentes.xhtml" target="_blank" class="btn btn-outline-dark w-100 py-3 d-flex align-items-center shadow-sm">
+                    <i class="bi bi-shield-shaded fs-3 me-3 text-danger"></i>
+                    <div class="text-start">
+                        <div class="fw-bold small">POLICÍA NACIONAL</div>
+                        <small class="text-muted" style="font-size: 0.7rem;">Antecedentes Judiciales</small>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-6">
+                <a href="https://inhabilidades.policia.gov.co:8080/" target="_blank" class="btn btn-outline-dark w-100 py-3 d-flex align-items-center shadow-sm">
+                    <i class="bi bi-exclamation-octagon fs-3 me-3 text-warning"></i>
+                    <div class="text-start">
+                        <div class="fw-bold small">RNMC (POLICÍA)</div>
+                        <small class="text-muted" style="font-size: 0.7rem;">Medidas Correctivas Ley 1801</small>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 
                                              </div>
                  </form>
