@@ -2,7 +2,7 @@ import os
 from flask import current_app
 from flask import Blueprint, request, render_template, url_for, flash, redirect, jsonify
 from app import db
-from app.modelos.models import Colegio, Proveedor
+from app.modelos.models import Colegio, Proveedor, Usuario
 from sqlalchemy.exc import IntegrityError
 from flask_login import login_required, current_user
 import traceback
@@ -202,7 +202,8 @@ def editar_colegio(id):
         colegio.rector_documento = request.form.get('rector_documento')
         colegio.rector_tipo_documento = request.form.get('rector_tipo_documento')
 
-        upload_folder = os.path.join("app", "static", "uploads")
+        # Esta línea detecta automáticamente si estás en C:\Users\Acer... o en /home/tu_usuario/proyecto...
+        upload_folder = os.path.join(current_app.root_path, 'static', 'uploads')
         nombre_limpio = "".join(x for x in colegio.nombre if x.isalnum() or x in "._- ").replace(' ', '_')
 
         # --- PROCESAR LOGO ---
@@ -387,36 +388,42 @@ def vista_admin_colegios():
 @colegios_bp.route('/colegios_json_paginado')
 @login_required
 def colegios_json_paginado():
-    # 1. Parámetros de la solicitud
+    # 1. Parámetros
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('q', '').strip()
-    per_page = 9 # Sugerencia: 9 se ve mejor en rejillas de 3x3
+    per_page = 9 
 
-    # 2. Query Base con Filtro de Seguridad por Rol
-    # Si es admin, ve todos. Si no, solo donde usuario_id coincide con su ID.
-    if current_user.rol == 'admin':
-        query = Colegio.query
-    else:
-        query = Colegio.query.filter_by(usuario_id=current_user.id)
+    # 2. Query Base con JOIN explicito a Usuario
+    # IMPORTANTE: Usamos db.session.query(Colegio) para poder unir tablas
+    query = db.session.query(Colegio).outerjoin(Usuario, Colegio.usuario_id == Usuario.id)
 
-    # 3. Filtro de búsqueda (Si el usuario escribió algo)
+    # 3. Filtro de Seguridad por Rol
+    if current_user.rol not in ['admin', 'auditor']:
+        query = query.filter(Colegio.usuario_id == current_user.id)
+
+    # 4. Filtro de búsqueda (Multi-tabla)
     if search_query:
         sf = f"%{search_query}%"
         query = query.filter(or_(
             Colegio.nombre.ilike(sf),
             Colegio.nit.ilike(sf),
             Colegio.municipio.ilike(sf),
-            Colegio.rector_nombre.ilike(sf)
+            Colegio.rector_nombre.ilike(sf),
+            Usuario.username.ilike(sf) # Ahora sí funciona por el JOIN del punto 2
         ))
 
-    # 4. Paginación
+    # 5. Paginación
+    # Al usar session.query, el paginate se aplica igual
     pagination = query.order_by(Colegio.nombre.asc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
 
-    # 5. Formatear resultados (Aseguramos que coincidan con tu frontend)
+    # 6. Formatear resultados
     resultado = []
     for col in pagination.items:
+        # Según tu modelo: el backref es 'contador'
+        nombre_del_contador = col.contador.username if col.contador else 'No asignado'
+        
         resultado.append({
             "id": col.id,
             "nombre": col.nombre.upper(),
@@ -429,8 +436,7 @@ def colegios_json_paginado():
             "rector_documento": col.rector_documento or '', 
             "rector_tipo_documento": col.rector_tipo_documento or 'CC',
             "firma_path": col.firma_path or '',
-            # Info del contador (útil para el admin, transparente para el contador)
-            "contador_nombre": col.contador.username if col.contador else 'No asignado'
+            "contador_nombre": nombre_del_contador # <--- Usando el backref correcto
         })
 
     return jsonify({

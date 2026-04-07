@@ -93,9 +93,11 @@
 <script src="{{ url_for('static', filename='js/perfil_colegios/editar_historial.js') }}"></script>
 <script src="{{ url_for('static', filename='js/perfil_colegios/generar_procesos.js') }}"></script>
 <script src="{{ url_for('static', filename='js/perfil_colegios/historial_procesos.js') }}"></script>
+<script src="{{ url_for('static', filename='js/perfil_colegios/informes_pdf.js') }}"></script>
 
 {% include "colegios/_form_colegio.html" %}
 {% include 'perfil_colegios/_modal_historial.html' %}
+{% include 'perfil_colegios/_modal_informe_pdf.html' %}
 {% include 'perfil_colegios/modal_generador_documentos.html' %}
 {% include 'perfil_colegios/_modal_detalle_proceso.html' %}
 

@@ -182,7 +182,7 @@
 
 
     <!--Conexion con modales-->
-    {% include "perfil_colegios/_modal_informe_excel.html" %}
+    {% include "perfil_colegios/_modal_informe_pdf.html" %}
     {% include 'perfil_colegios/_modales_perfil.html' %}
     {% include 'perfil_colegios/modal_generador_documentos.html' %}
     {% include 'perfil_colegios/_modal_historial.html' %}
@@ -206,8 +206,8 @@
     <script src="{{ url_for('static', filename='js/perfil_colegios/historial_procesos.js') }}"></script>
     <!--JS para sacar el rubro y codigo presupuestal-->
     <script src="{{ url_for('static', filename='js/perfil_colegios/presupuesto.js') }}"></script>
-    <!--JS  para el informe de execel-->
-    <script src="{{ url_for('static', filename='js/perfil_colegios/informes_excel.js') }}"></script>
+    <!--JS  para el informe de los procesos-->
+    <script src="{{ url_for('static', filename='js/perfil_colegios/informes_pdf.js') }}"></script>
     
     
 

@@ -205,6 +205,7 @@ def obtener_contexto_proceso(proceso_id):
         'numero_proceso': numero_formateado,
         'col_nombre': (colegio.nombre or "").upper(),
         'col_nit': colegio.nit or "",
+        'tipo_doc_rector': colegio.rector_tipo_documento or "",
         'col_rector': colegio.rector_nombre or "",
         'col_municipio': colegio.municipio or "",
         'col_direccion': colegio.direccion or "",

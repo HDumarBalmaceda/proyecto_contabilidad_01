@@ -1,8 +1,8 @@
 function inicializarSeguridadSesion(logoutUrl) {
 
     // Definimos los tiempos en milisegundos
-    const tiempoTotal = 20 * 60 * 1000; // 20 minutos
-    const tiempoAviso = 18 * 60 * 1000; // Aviso a los 18 minutos
+    const tiempoTotal = 60 * 60 * 1000; // 20 minutos
+    const tiempoAviso = 58 * 60 * 1000; // Aviso a los 18 minutos
 
     // 1. Temporizador para el cierre automático y redirección inmediata
     setTimeout(function() {

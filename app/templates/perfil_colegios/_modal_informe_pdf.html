@@ -1,0 +1,69 @@
+<div class="modal fade" id="modalFiltrosPDF" tabindex="-1" aria-labelledby="modalFiltrosPDFLabel" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-danger text-white py-3">
+                <h5 class="modal-title fw-bold" id="modalFiltrosPDFLabel">
+                    <i class="bi bi-file-earmark-pdf me-2"></i>Configurar Informe PDF
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body bg-light px-4 py-4">
+                <form id="formFiltrosPDF">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">
+                                <i class="bi bi-calendar-event me-1"></i>Fecha Inicio
+                            </label>
+                            <input type="date" class="form-control border-0 shadow-sm" id="fechaInicioPDF">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">
+                                <i class="bi bi-calendar-check me-1"></i>Fecha Fin
+                            </label>
+                            <input type="date" class="form-control border-0 shadow-sm" id="fechaFinPDF">
+                        </div>
+
+                        <div class="col-12 mt-3">
+                            <label class="form-label small fw-bold text-secondary">Tipo de Contrato</label>
+                            <div class="input-group shadow-sm">
+                                <span class="input-group-text bg-white border-0"><i class="bi bi-briefcase text-danger"></i></span>
+                                <select class="form-select border-0" id="tipoContratoPDF">
+                                    <option value="">Todos los tipos</option>
+                                    <option value="SUMINISTROS">Suministros</option>
+                                    <option value="HONORARIOS">Honorarios</option>
+                                    <option value="PRESTACION DE SERVICIOS">Prestación de servicios</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-12 mt-3">
+                            <label class="form-label small fw-bold text-secondary">Rubro Presupuestal</label>
+                            <div class="input-group shadow-sm">
+                                <span class="input-group-text bg-white border-0"><i class="bi bi-piggy-bank text-danger"></i></span>
+                                <select class="form-select border-0" id="rubroPDF">
+                                    <option value="">Todos los rubros</option>
+                                    <option value="2.1.2.02.01.003.0.1">MATERIALES Y SUMINISTROS INSTITUCIONALES</option>
+                                    <option value="2.1.2.02.02.007.03">GASTOS PÓLIZA DE MANEJO</option>
+                                    <option value="2.1.2.02.02.008.01">HONORARIOS PROFESIONALES</option>
+                                    <option value="2.1.2.02.02.008.02">REMUNERACIONES POR SERVICIOS TÉCNICOS</option>
+                                    <option value="2.1.2.02.02.008.05">IMPRESOS Y PUBLICACIONES</option>
+                                    <option value="2.1.2.02.02.008.06">SERVICIO DE MANTENIMIENTO</option>
+                                    <option value="2.3.2.01.01.003.02">MAQUINARIA DE OFICINA CONTABILIDAD E INFORMATICA</option>
+                                    <option value="2.3.2.02.02.009.02">ACTIVIDADES PEDAGÓGICAS, CIENTÍFICAS, DEPORTIVAS Y CULTURALES</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer border-0 bg-white justify-content-between">
+                <button type="button" class="btn btn-outline-secondary border-0 fw-bold" data-bs-dismiss="modal">CANCELAR</button>
+                <button type="button" class="btn btn-danger px-4 fw-bold shadow-sm" onclick="ejecutarDescargaPDF()">
+                    <i class="bi bi-filetype-pdf me-2"></i>GENERAR REPORTE
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

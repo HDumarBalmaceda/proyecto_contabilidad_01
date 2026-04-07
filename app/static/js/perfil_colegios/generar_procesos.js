@@ -155,29 +155,73 @@ async function abrirGeneradorDocs() {
     }
 }
 
-function calcularCronograma() {
-    const fElaboracionVal = document.getElementById('f_elaboracion').value;
-    if (!fElaboracionVal) return;
 
-    // Usar 'T00:00:00' para evitar desfases de zona horaria
-    let fechaBase = new Date(fElaboracionVal + 'T00:00:00');
+// 1. Lista de festivos Colombia 2026
+const festivos2026 = [
+    "2026-01-01", "2026-01-12", "2026-03-23", "2026-04-02", "2026-04-03",
+    "2026-05-01", "2026-05-18", "2026-06-08", "2026-06-15", "2026-06-29",
+    "2026-07-20", "2026-08-07", "2026-08-17", "2026-10-12", "2026-11-02",
+    "2026-11-16", "2026-12-08", "2026-12-25"
+];
+
+function sumarDiasHabiles(fechaInicial, diasParaSumar) {
+    
+    // 1. Creamos la fecha base
+    let fecha = new Date(fechaInicial + 'T00:00:00');
+    let cont = 0;
+
+    while (cont < diasParaSumar) {
+        // Avanzamos un día
+        fecha.setDate(fecha.getDate() + 1);
+        
+        let diaSemana = fecha.getDay(); // 0: Dom, 6: Sab
+        
+        // 2. Formato manual YYYY-MM-DD para evitar líos de zona horaria
+        let anio = fecha.getFullYear();
+        let mes = String(fecha.getMonth() + 1).padStart(2, '0');
+        let dia = String(fecha.getDate()).padStart(2, '0');
+        let fechaString = `${anio}-${mes}-${dia}`;
+
+        const esFinDeSemana = (diaSemana === 0 || diaSemana === 6);
+        const esFestivo = festivos2026.includes(fechaString);
+
+
+        if (!esFinDeSemana && !esFestivo) {
+            cont++;
+        } else {
+        }
+    }
+    return fecha;
+}
+
+// --- CÁLCULO DE CRONOGRAMA CON FESTIVOS ---
+function calcularCronograma() {
+    const fElab = document.getElementById('f_elaboracion').value;
+    
+    if (!fElab) return;
+
+    // Función interna para formatear fecha a YYYY-MM-DD de forma segura
     const format = (d) => d.toISOString().split('T')[0];
 
-    document.getElementById('f_publicacion').value = format(fechaBase);
-    
-    let fRec = new Date(fechaBase);
-    fRec.setDate(fRec.getDate() + 1);
-    document.getElementById('f_recepcion').value = format(fRec);
+    // 1. Publicación (1 día hábil después)
+    document.getElementById('f_publicacion').value = format(sumarDiasHabiles(fElab, 1));
 
-    let fCierre = new Date(fechaBase);
-    fCierre.setDate(fCierre.getDate() + 2);
-    const fCierreStr = format(fCierre);
-    document.getElementById('f_cierre').value = fCierreStr;
-    document.getElementById('f_verificacion').value = fCierreStr;
+    // 2. Recepción (2 días hábiles después)
+    document.getElementById('f_recepcion').value = format(sumarDiasHabiles(fElab, 2));
 
-    let fFirma = new Date(fechaBase);
-    fFirma.setDate(fFirma.getDate() + 3);
-    document.getElementById('f_firma').value = format(fFirma);
+    // 3. Cierre (3 días hábiles después)
+    document.getElementById('f_cierre').value = format(sumarDiasHabiles(fElab, 3));
+
+    // 4. Verificación (4 días hábiles después)
+    document.getElementById('f_verificacion').value = format(sumarDiasHabiles(fElab, 4));
+
+    // 5. Firma (5 días hábiles después)
+    document.getElementById('f_firma').value = format(sumarDiasHabiles(fElab, 5));
+
+    // Actualizar automáticamente la fecha de satisfacción (basada en f_firma + plazo)
+    if (typeof window.actualizarFechaSatisfaccion === "function") {
+        window.actualizarFechaSatisfaccion();
+    }
 }
 
 async function procesarExpediente() {
@@ -286,52 +330,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // 2. CÁLCULO AUTOMÁTICO DE CRONOGRAMA
-window.calcularCronograma = function() {
-    const fElab = document.getElementById('f_elaboracion').value;
-    
-    // 1. Verificación de seguridad: si no hay fecha, no hacemos nada
-    if (!fElab) return;
-
-    // 2. Crear la fecha base de forma segura (YYYY-MM-DD)
-    // Usamos split y new Date(y, m, d) para evitar problemas de zona horaria
-    const partes = fElab.split('-');
-    const fechaBase = new Date(partes[0], partes[1] - 1, partes[2]);
-
-    // 3. Función sumarDias mejorada con validación
-    const sumarDias = (fechaReferencia, dias) => {
-        if (isNaN(fechaReferencia.getTime())) return ""; // Si la fecha es inválida, abortar
-        
-        let res = new Date(fechaReferencia);
-        res.setDate(res.getDate() + dias);
-        
-        // Verificamos que el resultado sea una fecha válida antes de convertir a ISO
-        if (isNaN(res.getTime())) return "";
-        
-        return res.toISOString().split('T')[0];
-    };
-
-    // 4. Lógica secuencial (Capturamos los elementos para evitar errores si no existen)
-    const campos = {
-        'f_publicacion': 1,
-        'f_recepcion': 2,
-        'f_cierre': 3,
-        'f_verificacion': 4,
-        'f_firma': 5
-    };
-
-    for (const [id, dias] of Object.entries(campos)) {
-        const el = document.getElementById(id);
-        if (el) {
-            el.value = sumarDias(fechaBase, dias);
-        }
-    }
-
-    // Llamamos a la nueva función para calcular la fecha de satisfacción
-    if (typeof actualizarFechaSatisfaccion === "function") {
-        actualizarFechaSatisfaccion();
-    }
-};
 
 // NUEVA FUNCIÓN: Calcula satisfacción basado en Plazo + Fecha Firma
 window.actualizarFechaSatisfaccion = function() {

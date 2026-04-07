@@ -71,8 +71,9 @@ def create_app():
         from app.controladores.perfil_colegios.reportes_controlador import reportes_bp
         app.register_blueprint(reportes_bp, url_prefix='/reportes')
 
-        from app.controladores.perfil_colegios.reportes_excel_controlador import reportes_bp
-        app.register_blueprint(reportes_bp, url_prefix='/reportes_excel')
+        # Busca la línea 74 aproximadamente y cámbiala por esta:
+        from app.controladores.perfil_colegios.reportes_pdf_controlador import reportes_pdf_bp
+        app.register_blueprint(reportes_pdf_bp, url_prefix='/reportes')
 
         from app.controladores.autenticacion.usuarios_controlador import usuarios_bp
         app.register_blueprint(usuarios_bp, url_prefix='/admin')
